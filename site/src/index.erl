@@ -4,7 +4,7 @@
 
 main() -> #template { file="./site/templates/bare.html" }.
 
-title() -> "Welcome to Nitrogen".
+title() -> "Welcome to ///MTG".
 
 body() ->
     #container_12 { body=[
@@ -12,23 +12,34 @@ body() ->
     ]}.
 
 inner_body() -> 
-    [
-        #h1 { text="Welcome to Nitrogen" },
-        #p{},
-        "
-        If you can see this page, then your Nitrogen server is up and
-        running. Click the button below to test postbacks.
-        ",
-        #p{}, 	
-        #button { id=button, text="Click me!", postback=click },
-        #p{},
-        "
-        Run <b>./bin/dev help</b> to see some useful developer commands.
-        "
-    ].
-	
-event(click) ->
-    wf:replace(button, #panel { 
-        body="You clicked the button!", 
-        actions=#effect { effect=highlight }
-    }).
+    case wf:user() of
+        undefined ->
+            [#panel{id = loginPanel, body = login_panel()}];
+        _UserID ->
+            [#panel{id = loginPanel, body = logged_in_panel()}]
+    end.
+
+login_panel() ->
+    [#textbox{id = userTextBox},
+     #password{id = passwordTextBox},
+     #button{id = loginButton, text = "Login", postback = login},
+     #label{id = loginFault, style = "display: none;", text = "Wrong username or password"}].
+
+logged_in_panel() ->
+    [#label{text = "Welcome " ++ integer_to_list(wf:user())},
+     #button{id = logoutButton, text = "Logout", postback = logout}].
+
+event(login) ->
+    User = wf:q(userTextBox),
+    Password = wf:q(passwordTextBox),
+    
+    case mtg_db:login(User, Password) of
+        UserID when is_integer(UserID) ->
+            wf:user(UserID),
+            wf:update(loginPanel, logged_in_panel());
+        not_found ->
+            wf:wire(loginFault, #appear{})
+    end;
+event(logout) ->
+    wf:logout(),
+    wf:update(loginPanel, login_panel()).

@@ -1,0 +1,2 @@
+-record(users, {id, name, password}).
+-record(auto_increment, {table, key}).
