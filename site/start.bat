@@ -1,0 +1,1 @@
+"c:\Program Files\erl5.8.1\bin\werl.exe" -sname mtg -pa "./site/ebin" -pa "../nitrogen/apps/nitrogen/ebin" -pa "../nitrogen/apps/simple_bridge/ebin" -pa "../nitrogen/apps/nprocreg/ebin" -pa "./ebin" -eval "application:start(sasl)" -eval "application:start(nprocreg)" -eval "application:start(mtg)"

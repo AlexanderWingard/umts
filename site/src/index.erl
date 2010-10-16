@@ -2,7 +2,7 @@
 -compile(export_all).
 -include_lib("nitrogen/include/wf.hrl").
 
-main() -> #template { file="./site/templates/bare.html" }.
+main() -> #template { file="./templates/bare.html" }.
 
 title() -> "Welcome to ///MTG".
 
