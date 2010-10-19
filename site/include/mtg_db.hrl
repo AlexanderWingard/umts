@@ -1,2 +1,4 @@
 -record(users, {id, name, password}).
+-record(requests, {id, name}).
 -record(auto_increment, {table, key}).
+-record(cards, {id, name}).

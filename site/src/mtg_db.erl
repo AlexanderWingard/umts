@@ -16,6 +16,8 @@ reinstall() ->
 
 create_tables() ->
     {atomic, ok} = mnesia:create_table(users, [{attributes, record_info(fields, users)}]),
+    {atomic, ok} = mnesia:create_table(requests, [{attributes, record_info(fields, requests)}]),
+    {atomic, ok} = mnesia:create_table(cards, [{attributes, record_info(fields, cards)}]),
     {atomic, ok} = mnesia:create_table(auto_increment, [{attributes, record_info(fields, auto_increment)}]).
 
 insert_user(Name) ->
@@ -23,6 +25,15 @@ insert_user(Name) ->
                 %% TODO: Prevent duplicate usernames
                 NewID = mnesia:dirty_update_counter(auto_increment, users, 1),
                 ok = mnesia:write(#users{id = NewID, name = Name, password ="secret"}),
+                NewID
+        end,
+    {atomic, NewID} = mnesia:transaction(T),
+    NewID.
+
+insert_request(Name) ->
+    T = fun() ->
+                NewID = mnesia:dirty_update_counter(auto_increment, requests, 1),
+                ok = mnesia:write(#requests{id = NewID, name = Name}),
                 NewID
         end,
     {atomic, NewID} = mnesia:transaction(T),
@@ -38,8 +49,15 @@ login(Name, Password) ->
             UserID
     end.
 
-list_users() ->
-    Q = qlc:q([U#users.name || U <- mnesia:table(users)]),
+autocomplete_card(Search) ->
+    Q = qlc:q([C || C <- mnesia:table(cards),
+		    string:str(string:to_lower(C#cards.name), string:to_lower(Search)) > 0]),
+    T = fun() -> qlc:e(Q) end,
+    {atomic, Res} = mnesia:transaction(T),
+    Res.
+
+all(Table) ->
+    Q = qlc:q([R || R <- mnesia:table(Table)]),
     T = fun() -> qlc:e(Q) end,
     {atomic, Res} = mnesia:transaction(T),
     Res.

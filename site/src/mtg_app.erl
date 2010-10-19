@@ -6,6 +6,7 @@
 
 start(_, _) ->
     inets:start(),
+    mtg_db:init(),
     {ok, Pid} = inets:start(httpd, [
         {port, ?PORT},
         {server_name, "nitrogen"},
