@@ -16,7 +16,7 @@ reinstall() ->
 
 create_tables() ->
     {atomic, ok} = mnesia:create_table(users, [{attributes, record_info(fields, users)}]),
-    {atomic, ok} = mnesia:create_table(requests, [{attributes, record_info(fields, requests)}]),
+    {atomic, ok} = mnesia:create_table(wtts, [{attributes, record_info(fields, wtts)}]),
     {atomic, ok} = mnesia:create_table(cards, [{attributes, record_info(fields, cards)}]),
     {atomic, ok} = mnesia:create_table(auto_increment, [{attributes, record_info(fields, auto_increment)}]).
 
@@ -30,15 +30,53 @@ insert_user(Name) ->
     {atomic, NewID} = mnesia:transaction(T),
     NewID.
 
-insert_request(Name) ->
-    T = fun() ->
-                NewID = mnesia:dirty_update_counter(auto_increment, requests, 1),
-                ok = mnesia:write(#requests{id = NewID, name = Name}),
-                NewID
-        end,
-    {atomic, NewID} = mnesia:transaction(T),
-    NewID.
+add_wanter(Id, User) -> update_wtt(Id, User, #wtts.wanters, fun ordsets:add_element/2).
+del_wanter(Id, User) -> update_wtt(Id, User, #wtts.wanters, fun ordsets:del_element/2).
+add_haver(Id, User) -> update_wtt(Id, User, #wtts.havers, fun ordsets:add_element/2).
+del_haver(Id, User) -> update_wtt(Id, User, #wtts.havers, fun ordsets:del_element/2).
 
+update_wtt(Id, User, Kind, Fun) ->
+    T = fun() ->
+		Old = case mnesia:read(wtts, Id) of
+			  [Wtt] ->
+			      Wtt;
+			  [] ->
+			      #wtts{id = Id}
+		      end,
+		Traders = element(Kind, Old),
+		Updated = setelement(Kind, Old, Fun(User, Traders)),
+		case {ordsets:size(Updated#wtts.havers), ordsets:size(Updated#wtts.wanters)} of
+		    {0, 0} ->
+			ok = mnesia:delete({wtts, Id});
+		    _ ->
+			ok = mnesia:write(Updated)
+		end,
+		Updated
+	end,
+    {atomic, Wtt} = mnesia:transaction(T),
+    Wtt.
+
+all_wtts() ->
+    Q = qlc:q([C || C <- mnesia:table(cards),
+		    W <- mnesia:table(wtts),
+		    C#cards.id == W#wtts.id]),
+    T = fun() -> qlc:e(Q) end,
+    {atomic, Result} = mnesia:transaction(T),
+    Result.
+
+wtt_status(Id, User) ->
+    T = fun() ->
+		case mnesia:read(wtts, Id) of
+		    [#wtts{wanters = Wanters, havers = Havers}] ->
+			{ordsets:is_element(User, Wanters), ordsets:is_element(User, Havers)};
+		    [] ->
+			{false, false}
+		end
+	end,
+    {atomic, Res} = mnesia:transaction(T),
+    Res.
+		
+    
 login(Name, Password) ->
     Q = qlc:q([U#users.id || U <- mnesia:table(users), U#users.name == Name, U#users.password == Password]),
     T = fun() -> qlc:e(Q) end,
@@ -55,6 +93,14 @@ autocomplete_card(Search) ->
     T = fun() -> qlc:e(Q) end,
     {atomic, Res} = mnesia:transaction(T),
     Res.
+
+get_card(Id) ->
+    T = fun() ->
+		[Card] = mnesia:read(cards, Id),
+		Card
+	end,
+    {atomic, Result} = mnesia:transaction(T),
+    Result.
 
 all(Table) ->
     Q = qlc:q([R || R <- mnesia:table(Table)]),

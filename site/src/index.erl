@@ -20,7 +20,8 @@ inner_body() ->
         _UserID ->
 	    wf:wire(cards2, #event{type=keyup, postback = cards2}),
             [#panel{id = loginPanel, body = logged_in_panel()},
-	     #panel{id = requestPanel, style="height: 644", body = []}, 
+	     #panel{id = wtts, body = [card(C) || C <- mtg_db:all_wtts()]},
+	     #panel{id = requestPanel, body = []}, 
 	     #textbox_autocomplete{tag = cards},
 	     #textbox{id = cards2}]
     end.
@@ -51,8 +52,35 @@ event(logout) ->
     wf:redirect("/");
 event(cards2) ->
     Request = wf:q(cards2),
-    Completions = [#image{image = "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=" ++ C#cards.id ++ "&type=card", style="border: 1px solid black; width: 223, height: 310"} || C <- lists:sublist(mtg_db:autocomplete_card(Request), 4)],
-    wf:update(requestPanel, Completions).
+    Completions = [card(C) || C <- lists:sublist(mtg_db:autocomplete_card(Request), 4)],
+    wf:update(requestPanel, Completions);
+event({wtt, Callback, Id}) ->
+    mtg_db:Callback(Id, wf:user()),
+    wf:replace(Id, card(mtg_db:get_card(Id))).
+
+card(Card) ->
+    Id = Card#cards.id,
+    {Want, Have} = mtg_db:wtt_status(Id, wf:user()),
+    Wtt = [
+	   case Want of 
+	       true ->
+		   #link{text = "Don't want", postback = {wtt, del_wanter, Id}};
+	       false ->
+		   #link{text = "Want", postback = {wtt, add_wanter, Id}}
+	   end,
+	   case Have of 
+	       true ->
+		   #link{text = "Don't have", postback = {wtt, del_haver, Id}};
+	       false ->
+	    #link{text = "Have", postback = {wtt, add_haver, Id}}
+	   end
+	  ],
+
+    #panel{id = Card#cards.id,
+	   body = [#image{image = "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=" ++ Card#cards.id ++ "&type=card", style="border: 1px solid black; width: 223, height: 310"},
+		   Wtt
+		  ]
+	  }.
 
 autocomplete_enter_event(SearchTerm, cards) ->
     List = [{struct,[{id, list_to_binary(C#cards.id) }, 
