@@ -26,33 +26,41 @@ event(logout) ->
 event(search) ->
     Request = wf:q(search),
     Result = mtg_db:autocomplete_card(Request),
-    Completions = [card(C) || C <- lists:sublist(Result, 10)],
+    Completions = [(card(C))#panel{id = "srch" ++ C#cards.id} || C <- lists:sublist(Result, 10)],
     wf:update(searchPanel, [wf:f("Found ~w matching cards", [length(Result)]), Completions]);
 event({wtt, Callback, Id}) ->
     mtg_db:Callback(Id, wf:user()),
-    wf:replace(Id, card(mtg_db:get_card(Id))).
+    Card = card(mtg_db:get_card(Id)),
+    wf:replace("srch" ++ Id, Card#panel{id = "srch" ++ Id}),
+    wf:update(wtts, [card(C) || C <- mtg_db:all_wtts()]).
 
 card(Card) ->
     Id = Card#cards.id,
-    {Want, Have} = mtg_db:wtt_status(Id, wf:user()),
-    Wtt = [
-	   case Want of 
-	       true ->
-		   #link{text = "Don't want", postback = {wtt, del_wanter, Id}};
-	       false ->
-		   #link{text = "Want", postback = {wtt, add_wanter, Id}}
-	   end,
-	   "&nbsp;",
-	   case Have of 
-	       true ->
-		   #link{text = "Don't have", postback = {wtt, del_haver, Id}};
-	       false ->
-	    #link{text = "Have", postback = {wtt, add_haver, Id}}
-	   end
-	  ],
+    Wtt = mtg_db:get_wtts(Id),
+    Iwant = ordsets:is_element(wf:user(), Wtt#wtts.wanters),
+    Ihave = ordsets:is_element(wf:user(), Wtt#wtts.havers),
+    WantPB = case Iwant of
+		 true ->  {wtt, del_wanter, Id};
+		 false -> {wtt, add_wanter, Id}
+	     end,
+    HavePB = case Ihave of
+		 true -> {wtt, del_haver, Id};
+		 false ->{wtt, add_haver, Id}
+	     end,
+    
+    #panel{id = Id,
+	   body = [
+		   #image{image = "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=" ++ Card#cards.id ++ "&type=card",
+			 style = "width: 223px; height: 310px;"},
+		   #panel{body = [
+				  tooltip("W: ", Wtt#wtts.wanters, Iwant, WantPB),
+				  tooltip("H: ", Wtt#wtts.havers, Ihave, HavePB)
+				 ],
+			  style = "position: absolute; left: 10px; bottom: 10px"}
+		  ],
+	  style = "position: relative;"}.
 
-    #panel{id = Card#cards.id,
-	   body = [#image{image = "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=" ++ Card#cards.id ++ "&type=card", style="border: 1px solid black; width: 223, height: 310"},
-		   Wtt
-		  ]
-	  }.
+tooltip(Prefix, Wtt, Iwtt, Postback) ->
+    #panel{class= "wtt" ++ if Iwtt -> " iwtt"; true -> "" end, 
+	   body = [#link{text = [Prefix, integer_to_list(length(Wtt))], postback = Postback},
+		   #panel{body = [(mtg_db:get_user(U))#users.name || U <- Wtt]}]}.

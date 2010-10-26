@@ -30,6 +30,14 @@ insert_user(Name) ->
     {atomic, NewID} = mnesia:transaction(T),
     NewID.
 
+get_user(Id) ->
+    T = fun() ->
+		[User] = mnesia:read(users, Id),
+		User
+	end,
+    {atomic, Result} = mnesia:transaction(T),
+    Result.
+    
 add_wanter(Id, User) -> update_wtt(Id, User, #wtts.wanters, fun ordsets:add_element/2).
 del_wanter(Id, User) -> update_wtt(Id, User, #wtts.wanters, fun ordsets:del_element/2).
 add_haver(Id, User) -> update_wtt(Id, User, #wtts.havers, fun ordsets:add_element/2).
@@ -64,13 +72,13 @@ all_wtts() ->
     {atomic, Result} = mnesia:transaction(T),
     Result.
 
-wtt_status(Id, User) ->
+get_wtts(Id) ->
     T = fun() ->
 		case mnesia:read(wtts, Id) of
-		    [#wtts{wanters = Wanters, havers = Havers}] ->
-			{ordsets:is_element(User, Wanters), ordsets:is_element(User, Havers)};
 		    [] ->
-			{false, false}
+			#wtts{};
+		    [Wtts] ->
+			Wtts
 		end
 	end,
     {atomic, Res} = mnesia:transaction(T),
