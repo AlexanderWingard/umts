@@ -65,43 +65,58 @@ a:hover, a:active {
   top: 0;
   bottom: 0;
   left: 0;
-  width: 240px;
+  width: 250px;
   overflow:auto;
   margin: 0;
   padding: 1px;
-  border-right: 1px solid red;
 }
 
-.wfid_content {
-  margin-left: 260px; /* set left value to WidthOfFrameDiv */
+.wfid_content {    
+    margin-left: 260px;
 }
 
-.wfid_wtts div{
+.card {
+    position: relative;
+    display: inline;
+    text-align: left;
+}
+
+.card img {
+    width: 223px;
+    height: 310px;
+}
+
+.wtt {
+    font-size: 12px;
+    line-height: 23px;
+    position: absolute;
+    left: 11px;
+    bottom: 17px;
+    background-color: white;
+    border-radius: 5px;
+}
+
+.wtt2 {
     display: inline;
 }
 
-.wtt div {display:none;
-	 }
-.wtt:hover div{display:inline; 
-	       z-index: 1; 
-	       position:absolute; 
-	       background:#ffffff; 
-	       border:1px solid #cccccc; 
-	       color:#6c6c6c;
-	       overflow: visible;}
-
-.wtt, .wtt:visited {
-    background-color: gray;
-	display: inline-block;
-	text-decoration: none;
-	-moz-border-radius: 6px;
-	-webkit-border-radius: 6px;
-	-moz-box-shadow: 0 1px 3px rgba(0,0,0,0.6);
-	-webkit-box-shadow: 0 1px 3px rgba(0,0,0,0.6);
-	text-shadow: 0 -1px 1px rgba(0,0,0,0.25);
-	border-bottom: 1px solid rgba(0,0,0,0.25);
-	position: relative;
-	cursor: pointer
+.wtt2 div {
+    display: none;
+    font-size: 19px;
+    border: 2px solid black;
+    left: 0px;
+    bottom: 18px;
 }
 
-.iwtt{background-color: gold;}
+.wtt2 h3 {
+    line-height: 0px;
+    margin-bottom: 0px;
+}
+
+.wtt2:hover div { 
+    display:inline;
+    z-index: 1;
+    position:absolute;
+    overflow: visible;
+    background-color: white;
+}

@@ -29,9 +29,11 @@ event(search) ->
     Completions = [(card(C))#panel{id = "srch" ++ C#cards.id} || C <- lists:sublist(Result, 10)],
     wf:update(searchPanel, [wf:f("Found ~w matching cards", [length(Result)]), Completions]);
 event({wtt, Callback, Id}) ->
+    %% TODO: Some more security here?
     mtg_db:Callback(Id, wf:user()),
     Card = card(mtg_db:get_card(Id)),
     wf:replace("srch" ++ Id, Card#panel{id = "srch" ++ Id}),
+    %% TODO: Do we really need to redraw everything here?
     wf:update(wtts, [card(C) || C <- mtg_db:all_wtts()]).
 
 card(Card) ->
@@ -49,18 +51,18 @@ card(Card) ->
 	     end,
     
     #panel{id = Id,
+	   class = "card",
 	   body = [
-		   #image{image = "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=" ++ Card#cards.id ++ "&type=card",
-			 style = "width: 223px; height: 310px;"},
-		   #panel{body = [
-				  tooltip("W: ", Wtt#wtts.wanters, Iwant, WantPB),
-				  tooltip("H: ", Wtt#wtts.havers, Ihave, HavePB)
-				 ],
-			  style = "position: absolute; left: 10px; bottom: 10px"}
-		  ],
-	  style = "position: relative;"}.
+		   #image{image = "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=" ++ Card#cards.id ++ "&type=card"},
+		   #panel{class = "wtt",
+			   body = [
+				  tooltip("W: ", "Wanters:", Wtt#wtts.wanters, WantPB),
+				   "/",
+				  tooltip("H: ", "Havers:", Wtt#wtts.havers,  HavePB)
+				 ]}
+		  ]}.
 
-tooltip(Prefix, Wtt, Iwtt, Postback) ->
-    #panel{class= "wtt" ++ if Iwtt -> " iwtt"; true -> "" end, 
+tooltip(Prefix, Title, Wtt, Postback) ->
+    #panel{class= "wtt2", 
 	   body = [#link{text = [Prefix, integer_to_list(length(Wtt))], postback = Postback},
-		   #panel{body = [(mtg_db:get_user(U))#users.name || U <- Wtt]}]}.
+		   if length(Wtt) > 0 -> #panel{body = [#h3{text = Title}, [(mtg_db:get_user(U))#users.name || U <- Wtt]]}; true -> [] end]}.
