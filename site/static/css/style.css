@@ -75,6 +75,12 @@ a:hover, a:active {
     margin-left: 260px;
 }
 
+.wfid_confirmbox {
+    padding: 25px;
+    background-color: white;
+    border-radius: 15px;
+}
+
 .card {
     position: relative;
     display: inline;

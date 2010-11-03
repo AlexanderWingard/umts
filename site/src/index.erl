@@ -4,14 +4,19 @@
 
 -include("mtg_db.hrl").
 
-main() -> #template { file="./templates/bare.html" }.
+main() -> 
+    case wf:user() of
+	undefined ->
+	    wf:redirect("login");
+	_ ->
+	    #template { file="./templates/bare.html" }
+    end.
 
 title() -> "Welcome to ///MTG".
 
 body() ->
-    [#panel{id = leftnav, body = search()},
-     #panel{id = content, body = content()}
-    ].
+    [#panel{id = leftnav, body = [user(), search()]},
+     #panel{id = content, body = content()}].
 
 content() -> 
     [#panel{id = wtts, body = [card(C) || C <- mtg_db:all_wtts()]}].
@@ -20,9 +25,13 @@ search() ->
     [#textbox{id = search, postback = search},
      #panel{id = searchPanel, body = []}].
 
+user() ->
+    User = mtg_db:get_user(wf:user()),
+    ["Singed in as: ", User#users.name, " ", #link{text = "Logout", postback = logout}].
+
 event(logout) ->
     wf:logout(),
-    wf:redirect("/");
+    wf:redirect("login");
 event(search) ->
     Request = wf:q(search),
     Result = mtg_db:autocomplete_card(Request),
