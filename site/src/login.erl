@@ -48,7 +48,15 @@ event(login) ->
 	    wf:redirect("/")
     end;
 event(register) ->
-    wf:wire(lb, #show{});
+    Username = wf:q(username),
+    Password = wf:q(password),
+    case length(Username) == 0
+	orelse length(Password) == 0 of 
+	true ->
+	    wf:flash("Please enter a username and password to register");
+	false ->
+	    wf:wire(lb, #show{})
+    end;
 event(confirm) ->
     Username = wf:q(username),
     Password = wf:q(password),
