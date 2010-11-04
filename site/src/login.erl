@@ -6,16 +6,19 @@
 
 main() -> #template { file="./templates/bare.html" }.
 
-title() -> "Login to ///MTG".
+title() -> "Login".
 
 body() ->
-    #container_12{body = [
-			  #grid_8{alpha=true, 
+    #container_12{body = [#panel{id = logo,
+				 body = [#h1{text = "UMTS"},
+					 #p{body = "The ultimate magic trading system"}]
+				},
+			  #grid_8{id = loginbox,
+				  alpha=true, 
 				  prefix=2, 
 				  suffix=2, 
 				  omega=true, 
-				  body=inner_body(),
-				  style = "text-align: center;"
+				  body=inner_body()
 				 }
 			 ]}.
 

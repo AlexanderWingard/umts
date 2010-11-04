@@ -12,7 +12,7 @@ main() ->
 	    #template { file="./templates/bare.html" }
     end.
 
-title() -> "Welcome to ///MTG".
+title() -> "Main".
 
 body() ->
     [#panel{id = leftnav, body = [user(), search()]},
@@ -27,7 +27,7 @@ search() ->
 
 user() ->
     User = mtg_db:get_user(wf:user()),
-    ["Singed in as: ", User#users.name, " ", #link{text = "Logout", postback = logout}].
+    ["Signed in as: ", User#users.name, " ", #link{text = "Logout", postback = logout}].
 
 event(logout) ->
     wf:logout(),
@@ -62,8 +62,9 @@ card(Card) ->
     #panel{id = Id,
 	   class = "card",
 	   body = [
-		   #image{image = "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=" ++ Card#cards.id ++ "&type=card"},
-		   #panel{class = "wtt",
+		   #image{image = "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=" ++ Card#cards.id ++ "&type=card",
+			  alt = Card#cards.name},
+		   #panel{class = "wtt" ++ if Iwant orelse Ihave -> " iwtt"; true -> "" end,
 			   body = [
 				  tooltip("W: ", "Wanters:", Wtt#wtts.wanters, WantPB),
 				   "/",
@@ -74,4 +75,5 @@ card(Card) ->
 tooltip(Prefix, Title, Wtt, Postback) ->
     #panel{class= "wtt2", 
 	   body = [#link{text = [Prefix, integer_to_list(length(Wtt))], postback = Postback},
-		   if length(Wtt) > 0 -> #panel{body = [#h3{text = Title}, [(mtg_db:get_user(U))#users.name || U <- Wtt]]}; true -> [] end]}.
+		   #panel{body = [#h3{text = Title}, 
+				  #list{body = [#listitem{text = (mtg_db:get_user(U))#users.name} || U <- Wtt]}]}]}.
