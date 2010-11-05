@@ -2,7 +2,7 @@
 -compile(export_all).
 -include_lib("nitrogen/include/wf.hrl").
 
--include("mtg_db.hrl").
+-include("umts_db.hrl").
 
 main() -> #template { file="./templates/bare.html" }.
 
@@ -43,7 +43,7 @@ inner_body() ->
 event(login) ->
     Username = wf:q(username),
     Password = wf:q(password),
-    case mtg_db:login(Username, Password) of
+    case umts_db:login(Username, Password) of
 	not_found ->
 	    wf:flash("Incorrect username or password");
 	Id ->
@@ -67,7 +67,7 @@ event(confirm) ->
     wf:wire(lb, #hide{}),
     case Password == Password2 of
 	true ->
-	    case mtg_db:insert_user(Username, Password) of
+	    case umts_db:insert_user(Username, Password) of
 		{ok, NewID} ->
 		    wf:user(NewID),
 		    wf:redirect("/");

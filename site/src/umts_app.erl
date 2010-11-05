@@ -1,4 +1,4 @@
--module (mtg_app).
+-module (umts_app).
 -export ([start/2, stop/0, do/1]).
 -include_lib ("nitrogen/include/wf.hrl").
 -define(PORT, 8000).
@@ -6,10 +6,10 @@
 
 start(_, _) ->
     inets:start(),
-    mtg_db:init(),
+    umts_db:init(),
     {ok, Pid} = inets:start(httpd, [
         {port, ?PORT},
-        {server_name, "nitrogen"},
+        {server_name, "UMTS"},
         {server_root, "."},
         {document_root, "./static"},
         {modules, [?MODULE]},

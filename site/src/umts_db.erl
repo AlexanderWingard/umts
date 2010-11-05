@@ -1,7 +1,7 @@
--module(mtg_db).
+-module(umts_db).
 -compile(export_all).
 
--include("mtg_db.hrl").
+-include("umts_db.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 
 init() ->

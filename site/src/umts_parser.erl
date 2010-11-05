@@ -1,7 +1,7 @@
--module(mtg_parser).
+-module(umts_parser).
 -compile(export_all).
 
--include("mtg_db.hrl").
+-include("umts_db.hrl").
 
 parse() ->
     lists:foreach(fun parse/1, filelib:wildcard("MagicDB/*.xml")).
