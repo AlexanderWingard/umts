@@ -15,10 +15,10 @@ reinstall() ->
     create_tables().
 
 create_tables() ->
-    {atomic, ok} = mnesia:create_table(users, [{attributes, record_info(fields, users)}]),
-    {atomic, ok} = mnesia:create_table(wtts, [{attributes, record_info(fields, wtts)}]),
-    {atomic, ok} = mnesia:create_table(cards, [{attributes, record_info(fields, cards)}]),
-    {atomic, ok} = mnesia:create_table(auto_increment, [{attributes, record_info(fields, auto_increment)}]).
+    {atomic, ok} = mnesia:create_table(users, [{attributes, record_info(fields, users)}, {disc_copies,[node()]}]),
+    {atomic, ok} = mnesia:create_table(wtts, [{attributes, record_info(fields, wtts)}, {disc_copies,[node()]}]),
+    {atomic, ok} = mnesia:create_table(cards, [{attributes, record_info(fields, cards)}, {disc_copies,[node()]}]),
+    {atomic, ok} = mnesia:create_table(auto_increment, [{attributes, record_info(fields, auto_increment)}, {disc_copies,[node()]}]).
 
 insert_user(Name, Password) ->
     Q = qlc:q([U#users.id || U <- mnesia:table(users),
