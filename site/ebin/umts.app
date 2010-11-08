@@ -1,4 +1,7 @@
+
+
 {application, umts, [
 	{description,  "the Ultimate Magic Trading System"},
-	{mod, {umts_app, []}}
+		{applications, [sasl, nprocreg]},
+		{mod, {umts_app, 8000}}
 ]}.

@@ -1,14 +1,12 @@
 -module (umts_app).
 -export ([start/2, stop/0, do/1]).
 -include_lib ("nitrogen/include/wf.hrl").
--define(PORT, 8000).
 
-
-start(_, _) ->
+start(_, Port) ->
     inets:start(),
     umts_db:init(),
     {ok, Pid} = inets:start(httpd, [
-        {port, ?PORT},
+        {port, Port},
         {server_name, "UMTS"},
         {server_root, "."},
         {document_root, "./static"},
@@ -19,7 +17,7 @@ start(_, _) ->
     {ok, Pid}.
 
 stop() ->
-    httpd:stop_service({any, ?PORT}),
+    inets:stop(),
     ok.
 
 do(Info) ->
