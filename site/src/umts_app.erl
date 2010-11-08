@@ -7,6 +7,7 @@ start(_, Port) ->
     umts_db:init(),
     {ok, Pid} = inets:start(httpd, [
         {port, Port},
+	{ipfamily, inet},
         {server_name, "UMTS"},
         {server_root, "."},
         {document_root, "./static"},
