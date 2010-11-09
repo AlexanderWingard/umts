@@ -69,9 +69,10 @@ wtts() ->
 
 card(Card) ->
     Id = Card#cards.id,
+    User = wf:user(),
     Wtt = umts_db:get_wtts(Id),
-    Iwant = ordsets:is_element(wf:user(), Wtt#wtts.wanters),
-    Ihave = ordsets:is_element(wf:user(), Wtt#wtts.havers),
+    Iwant = ordsets:is_element(User, Wtt#wtts.wanters),
+    Ihave = ordsets:is_element(User, Wtt#wtts.havers),
     WantPB = case Iwant of
 		 true ->  {wtt, del_wanter, Id};
 		 false -> {wtt, add_wanter, Id}
@@ -80,19 +81,34 @@ card(Card) ->
 		 true -> {wtt, del_haver, Id};
 		 false ->{wtt, add_haver, Id}
 	     end,
-    
+
+    Match = match_class(User, Iwant, Wtt#wtts.havers) orelse
+	match_class(User, Ihave, Wtt#wtts.wanters),
+
+    ExtraClass = if Match ->
+			 " matchwtt";
+		    Iwant orelse Ihave ->
+			 " iwtt";
+		    true ->
+			 ""
+		 end,
+
     #panel{id = Id,
 	   class = "card",
 	   body = [
 		   #image{image = "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=" ++ Card#cards.id ++ "&type=card",
 			  alt = Card#cards.name},
-		   #panel{class = "wtt" ++ if Iwant orelse Ihave -> " iwtt"; true -> "" end,
+		   #panel{class = "wtt" ++ ExtraClass,
 			   body = [
 				  tooltip("W: ", "Wanters:", Wtt#wtts.wanters, WantPB),
 				   "/",
 				  tooltip("H: ", "Havers:", Wtt#wtts.havers,  HavePB)
 				 ]}
 		  ]}.
+
+match_class(User, I, Wtt) ->
+    I andalso ordsets:size(ordsets:del_element(User, Wtt)) > 0.
+	    
 
 tooltip(Prefix, Title, Wtt, Postback) ->
     #panel{class= "wtt2", 
