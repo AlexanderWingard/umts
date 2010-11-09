@@ -7,7 +7,7 @@
 main() -> 
     case wf:user() of
 	undefined ->
-	    wf:redirect("login");
+	    wf:redirect("/login");
 	_ ->
 	    #template { file="./templates/bare.html" }
     end.
@@ -32,14 +32,14 @@ user() ->
 event(Event) ->
     case wf:user() of
 	undefined ->
-	    wf:redirect("login");
+	    wf:redirect("/login");
 	_ ->
 	    handle_event(Event)
     end.
 
 handle_event(logout) ->
     wf:logout(),
-    wf:redirect("login");
+    wf:redirect("/login");
 handle_event(search) ->
     Request = wf:q(search),
     Result = umts_db:autocomplete_card(Request),

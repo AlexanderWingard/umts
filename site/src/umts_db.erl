@@ -20,21 +20,6 @@ create_tables() ->
     {atomic, ok} = mnesia:create_table(cards, [{attributes, record_info(fields, cards)}, {disc_copies,[node()]}]),
     {atomic, ok} = mnesia:create_table(auto_increment, [{attributes, record_info(fields, auto_increment)}, {disc_copies,[node()]}]).
 
-transform() ->
-    transform(0).
-
-transform(0) ->
-    T = fun({users, ID, Name, Password}) ->
-		#users{id = ID,
-		       name = Name,
-		       password = Password,
-		       display = Name}
-	end,
-    mnesia:transform_table(users, T, record_info(fields, users)),
-    transform(1);
-transform(_) ->
-    ok.
-
 insert_user(Name, Password) ->
     Q = qlc:q([U#users.id || U <- mnesia:table(users),
 			     U#users.name == Name]),
