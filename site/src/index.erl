@@ -19,7 +19,7 @@ body() ->
      #panel{id = content, body = content()}].
 
 content() -> 
-    [#panel{id = wtts, body = [card(C) || C <- umts_db:all_wtts()]}].
+    [#panel{id = wtts, body = wtts()}].
 
 search() ->
     [#textbox{id = search, postback = search},
@@ -51,7 +51,21 @@ handle_event({wtt, Callback, Id}) ->
     Card = card(umts_db:get_card(Id)),
     wf:replace("srch" ++ Id, Card#panel{id = "srch" ++ Id}),
     %% TODO: Do we really need to redraw everything here?
-    wf:update(wtts, [card(C) || C <- umts_db:all_wtts()]).
+    wf:update(wtts, wtts()).
+
+wtts() ->
+    case catch list_to_integer(wf:path_info()) of
+	UserID when is_integer(UserID) ->
+	    User = umts_db:get_user(UserID),
+	    [#h1{text = User#users.display},
+	     #link{text = "Show all", url = "index" },
+	     #h2{text = "Wants:"},
+	     [card(C) || C <- umts_db:user_wtts(UserID, #wtts.wanters)],
+	     #h2{text = "Haves:"},
+	     [card(C) || C <- umts_db:user_wtts(UserID, #wtts.havers)]];
+	_ ->
+	    [card(C) || C <- umts_db:all_wtts()]
+    end.
 
 card(Card) ->
     Id = Card#cards.id,
@@ -84,4 +98,9 @@ tooltip(Prefix, Title, Wtt, Postback) ->
     #panel{class= "wtt2", 
 	   body = [#link{text = [Prefix, integer_to_list(length(Wtt))], postback = Postback},
 		   #panel{body = [#h3{text = Title}, 
-				  #list{body = [#listitem{text = (umts_db:get_user(U))#users.name} || U <- Wtt]}]}]}.
+				  #list{body = lists:map(fun(UserID) ->
+								 User = umts_db:get_user(UserID),
+								 #listitem{body = #link{text = User#users.display, 
+											url = "/index/" ++ integer_to_list(User#users.id)}}
+							 end,
+							 Wtt)}]}]}.

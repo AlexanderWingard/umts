@@ -20,6 +20,21 @@ create_tables() ->
     {atomic, ok} = mnesia:create_table(cards, [{attributes, record_info(fields, cards)}, {disc_copies,[node()]}]),
     {atomic, ok} = mnesia:create_table(auto_increment, [{attributes, record_info(fields, auto_increment)}, {disc_copies,[node()]}]).
 
+transform() ->
+    transform(0).
+
+transform(0) ->
+    T = fun({users, ID, Name, Password}) ->
+		#users{id = ID,
+		       name = Name,
+		       password = Password,
+		       display = Name}
+	end,
+    mnesia:transform_table(users, T, record_info(fields, users)),
+    transform(1);
+transform(_) ->
+    ok.
+
 insert_user(Name, Password) ->
     Q = qlc:q([U#users.id || U <- mnesia:table(users),
 			     U#users.name == Name]),
@@ -79,6 +94,16 @@ all_wtts() ->
     T = fun() -> qlc:e(Q) end,
     {atomic, Result} = mnesia:transaction(T),
     Result.
+
+user_wtts(User, Kind) ->
+    Q = qlc:q([C || C <- mnesia:table(cards),
+		    W <- mnesia:table(wtts),
+		    C#cards.id == W#wtts.id,
+		    ordsets:is_element(User, element(Kind, W))]),
+    T = fun() -> qlc:e(Q) end,
+    {atomic, Result} = mnesia:transaction(T),
+    Result.
+
 
 get_wtts(Id) ->
     T = fun() ->
