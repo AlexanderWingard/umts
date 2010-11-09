@@ -136,12 +136,10 @@ a:hover, a:active {
 
 .wtt2 {
     display: inline;
-
 }
 
 .wtt2 div {
-    position: absolute;
-    z-index: -1;
+    display: none;
     font-size: 19px;
     border: 4px solid #ddd;
     -webkit-box-shadow: 8px 10px 10px rgba(0,0,0,0.5);
@@ -149,11 +147,7 @@ a:hover, a:active {
     padding: 7px;
     border-radius: 10px;
     left: -17px;
-    bottom: 25px;
-    background-color: white;
-    -webkit-transition: all 0.2s linear;
-    -moz-transition: all 0.2s linear;
-    opacity: 0;
+    bottom: 18px;
 }
 
 .wtt2 h3 {
@@ -178,10 +172,7 @@ a:hover, a:active {
     z-index: 1;
     position:absolute;
     overflow: visible;
-    bottom: 18px;
-    -webkit-transition: all 0.2s linear;
-    -moz-transition: all 0.2s linear;
-    opacity: 1;
+    background-color: white;
 }
 
 .iwtt {
