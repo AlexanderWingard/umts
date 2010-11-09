@@ -29,15 +29,23 @@ user() ->
     User = umts_db:get_user(wf:user()),
     ["Signed in as: ", User#users.name, " ", #link{text = "Logout", postback = logout}].
 
-event(logout) ->
+event(Event) ->
+    case wf:user() of
+	undefined ->
+	    wf:redirect("login");
+	_ ->
+	    handle_event(Event)
+    end.
+
+handle_event(logout) ->
     wf:logout(),
     wf:redirect("login");
-event(search) ->
+handle_event(search) ->
     Request = wf:q(search),
     Result = umts_db:autocomplete_card(Request),
     Completions = [(card(C))#panel{id = "srch" ++ C#cards.id} || C <- lists:sublist(Result, 10)],
     wf:update(searchPanel, [wf:f("Found ~w matching cards", [length(Result)]), Completions]);
-event({wtt, Callback, Id}) ->
+handle_event({wtt, Callback, Id}) ->
     %% TODO: Some more security here?
     umts_db:Callback(Id, wf:user()),
     Card = card(umts_db:get_card(Id)),
