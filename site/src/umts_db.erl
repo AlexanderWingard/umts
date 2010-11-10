@@ -44,7 +44,8 @@ insert_user(Name, Password) ->
 			NewID = mnesia:dirty_update_counter(auto_increment, users, 1),
 			ok = mnesia:write(#users{id = NewID, 
 						 name = string:to_lower(Name), 
-						 password = Password}),
+						 password = Password,
+						 display = Name}),
 			{ok, NewID};
 		    [_Existing] ->
 			{fault, exists}
