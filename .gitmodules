@@ -1,3 +1,6 @@
 [submodule "nitrogen"]
 	path = nitrogen
 	url = http://github.com/rklophaus/nitrogen.git
+[submodule "esmtp"]
+	path = esmtp
+	url = git://github.com/archaelus/esmtp.git
