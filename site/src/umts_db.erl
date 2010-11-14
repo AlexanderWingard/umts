@@ -15,10 +15,11 @@ reinstall() ->
     create_tables().
 
 create_tables() ->
-    {atomic, ok} = mnesia:create_table(users, [{attributes, record_info(fields, users)}, {disc_copies,[node()]}]),
-    {atomic, ok} = mnesia:create_table(wtts, [{attributes, record_info(fields, wtts)}, {disc_copies,[node()]}]),
-    {atomic, ok} = mnesia:create_table(cards, [{attributes, record_info(fields, cards)}, {disc_copies,[node()]}]),
-    {atomic, ok} = mnesia:create_table(auto_increment, [{attributes, record_info(fields, auto_increment)}, {disc_copies,[node()]}]).
+    mnesia:create_table(users, [{attributes, record_info(fields, users)}, {disc_copies,[node()]}]),
+    mnesia:create_table(wtts, [{attributes, record_info(fields, wtts)}, {disc_copies,[node()]}]),
+    mnesia:create_table(cards, [{attributes, record_info(fields, cards)}, {disc_copies,[node()]}]),
+    mnesia:create_table(events, [{attributes, record_info(fields, events)}, {disc_copies, [node()]}]),
+    mnesia:create_table(auto_increment, [{attributes, record_info(fields, auto_increment)}, {disc_copies,[node()]}]).
 
 transform() ->
     transform(0).
@@ -145,6 +146,7 @@ get_card(Id) ->
 	end,
     {atomic, Result} = mnesia:transaction(T),
     Result.
+
 
 all(Table) ->
     Q = qlc:q([R || R <- mnesia:table(Table)]),
