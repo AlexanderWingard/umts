@@ -45,6 +45,9 @@ format_event_event(#wtt_event{user = UserID, card = CardID, kind = Kind}) ->
 		 del_haver ->
 		     "no longer haves"
 	     end,
-    wf:f("~s ~s ~s", [User#users.name, Action, Card#cards.name]);
+    wf:f("~s ~s ~s", [User#users.display, Action, Card#cards.name]);
+format_event_event(#login_event{user = UserID}) ->
+    User = umts_db:get_user(UserID),
+    wf:f("~s logged in", [User#users.display]);
 format_event_event(Event) ->
     not_ok.
