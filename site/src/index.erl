@@ -46,11 +46,17 @@ sort()->
                         chbw}},
                 #checkbox{text = "Artifact", checked=false, postback={sort, "A",
                         chba}},
+                #span{style="padding-left:50px", text = "Watch user:  " },
+                users_dropdown(),
                 #br{},
                 #hr{}
         ]}].        
 
 users_dropdown()->
+    #dropdown{ id = userlist, options = [ #option{text=X#users.name,
+                value=X#users.id} || X<-umts_db:get_users()], 
+        postback = show_user
+    }.
     
 
 event(Event) ->
@@ -90,7 +96,10 @@ handle_event({sort, Color, Id})->
     %% TODO: Fix this to a better handlingi
     C = update_sortlist(Color,Id), 
     wf:update(wtts, [card(X) || X<- umts_db:sort(C)]);
-    
+handle_event(show_user)->
+    [SelectedUserId] = wf:q(userlist),
+    wf:update(wtts, show_user(SelectedUserId));
+
 handle_event({wtt, Callback, Id}) ->
     %% TODO: Some more security here?
     umts_db:Callback(Id, wf:user()),
@@ -99,19 +108,23 @@ handle_event({wtt, Callback, Id}) ->
     %% TODO: Do we really need to redraw everything here?
     wf:update(wtts, wtts()).
 
+
 wtts() ->
     case catch list_to_integer(wf:path_info()) of
-	UserID when is_integer(UserID) ->
-	    User = umts_db:get_user(UserID),
-	    [#h1{text = User#users.display},
-%	     #link{text = "Show all", url = "index" },
-         #h2{text = "Wants:"},
-	     [card(C) || C <- umts_db:user_wtts(UserID, #wtts.wanters)],
-	     #h2{text = "Haves:"},
-	     [card(C) || C <- umts_db:user_wtts(UserID, #wtts.havers)]];
-	_ ->
-	    [card(C) || C <- umts_db:all_wtts()]
+	    UserID when is_integer(UserID) ->
+            show_user(UserID);
+	 	_ ->
+	        [card(C) || C <- umts_db:all_wtts()]
     end.
+
+show_user(UserID)->        
+    User = umts_db:get_user(UserID),
+	[#h1{text = User#users.display},
+%	 #link{text = "Show all", url = "index" },
+     #h2{text = "Wants:"},
+	 [card(C) || C <- umts_db:user_wtts(UserID, #wtts.wanters)],
+	 #h2{text = "Haves:"},
+	 [card(C) || C <- umts_db:user_wtts(UserID, #wtts.havers)]].
 
 card(Card) ->
     Id = Card#cards.id,

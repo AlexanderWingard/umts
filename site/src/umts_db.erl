@@ -61,7 +61,13 @@ get_user(Id) ->
 	end,
     {atomic, Result} = mnesia:transaction(T),
     Result.
-    
+
+get_users()->
+    Q = qlc:q([U || U <- mnesia:table(users)]),
+    T = fun() -> qlc:e(Q) end,
+    {atomic, Result} = mnesia:transaction(T),
+    Result.
+
 add_wanter(Id, User) -> update_wtt(Id, User, #wtts.wanters, fun
         ordsets:add_element/2, now()).
 del_wanter(Id, User) -> update_wtt(Id, User, #wtts.wanters, fun
@@ -102,7 +108,7 @@ all_wtts() ->
 		    C#cards.id == W#wtts.id]),
     T = fun() -> qlc:e(Q) end,
     {atomic, Result} = mnesia:transaction(T),
-    Result.
+     Result.
 
 user_wtts(User, Kind) ->
     Q = qlc:q([C || C <- mnesia:table(cards),
