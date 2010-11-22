@@ -62,12 +62,16 @@ get_user(Id) ->
     {atomic, Result} = mnesia:transaction(T),
     Result.
     
-add_wanter(Id, User) -> update_wtt(Id, User, #wtts.wanters, fun ordsets:add_element/2).
-del_wanter(Id, User) -> update_wtt(Id, User, #wtts.wanters, fun ordsets:del_element/2).
-add_haver(Id, User) -> update_wtt(Id, User, #wtts.havers, fun ordsets:add_element/2).
-del_haver(Id, User) -> update_wtt(Id, User, #wtts.havers, fun ordsets:del_element/2).
+add_wanter(Id, User) -> update_wtt(Id, User, #wtts.wanters, fun
+        ordsets:add_element/2, now()).
+del_wanter(Id, User) -> update_wtt(Id, User, #wtts.wanters, fun
+        ordsets:del_element/2, undefined).
+add_haver(Id, User) -> update_wtt(Id, User, #wtts.havers, fun
+        ordsets:add_element/2, now()).
+del_haver(Id, User) -> update_wtt(Id, User, #wtts.havers, fun
+        ordsets:del_element/2, undefined).
 
-update_wtt(Id, User, Kind, Fun) ->
+update_wtt(Id, User, Kind, Fun, Timestamp) ->
     T = fun() ->
 		Old = case mnesia:read(wtts, Id) of
 			  [Wtt] ->
@@ -76,7 +80,11 @@ update_wtt(Id, User, Kind, Fun) ->
 			      #wtts{id = Id}
 		      end,
 		Traders = element(Kind, Old),
-		Updated = setelement(Kind, Old, Fun(User, Traders)),
+		Updated1 = setelement(Kind, Old, Fun(User, Traders)),
+        Updated = case Timestamp of
+            undefined -> Updated1;
+            _-> Updated1#wtts{timestamp=Timestamp}
+        end,
 		case {ordsets:size(Updated#wtts.havers), ordsets:size(Updated#wtts.wanters)} of
 		    {0, 0} ->
 			ok = mnesia:delete({wtts, Id});
@@ -105,6 +113,12 @@ user_wtts(User, Kind) ->
     {atomic, Result} = mnesia:transaction(T),
     Result.
 
+get_updated_wtts()->
+    Q = qlc:q([W || W <- mnesia:table(wtts),
+            W#wtts.timestamp /= undefined]),
+    T = fun() -> qlc:e(Q) end,
+    {atomic, Result} = mnesia:transaction(T),
+    Result.
 
 get_wtts(Id) ->
     T = fun() ->
@@ -118,7 +132,11 @@ get_wtts(Id) ->
     {atomic, Res} = mnesia:transaction(T),
     Res.
 		
-    
+sort(Colors)->
+        [C || C<-all_wtts(),
+              X <- Colors,
+              lists:member(X,C#cards.color)].
+
 login(Name, Password) ->
     Q = qlc:q([U#users.id || U <- mnesia:table(users),
 			     U#users.name == string:to_lower(Name), 
@@ -136,7 +154,7 @@ autocomplete_card(Search) ->
 		    string:str(string:to_lower(C#cards.name), string:to_lower(Search)) > 0]),
     T = fun() -> qlc:e(Q) end,
     {atomic, Res} = mnesia:transaction(T),
-    Res.
+     Res.
 
 get_card(Id) ->
     T = fun() ->
