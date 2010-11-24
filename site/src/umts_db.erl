@@ -24,13 +24,26 @@ transform() ->
     transform(0).
 
 transform(0) ->
-    T = fun({users, ID, Name, Password}) ->
+    T1 = fun({users, ID, Name, Password}) ->
 		#users{id = ID,
 		       name = Name,
 		       password = Password,
 		       display = Name}
 	end,
-    mnesia:transform_table(users, T, record_info(fields, users)),
+    T2 = fun({wtts, ID, Wanters, Havers}) ->
+		 #wtts{id = ID,
+		       timestamp = now(),
+		       wanters = Wanters,
+		       havers = Havers}
+	 end,
+    T3 = fun({cards, ID, Name}) ->
+		 #cards{id = ID,
+			name = Name,
+			color = []}
+	 end,
+    mnesia:transform_table(users, T1, record_info(fields, users)),
+    mnesia:transform_table(wtts, T2, record_info(fields, wtts)),
+    mnesia:transform_table(cards, T3, record_info(fields, cards)),
     transform(1);
 transform(_) ->
     ok.
