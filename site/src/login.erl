@@ -35,6 +35,8 @@ inner_body() ->
 	       body = [#panel{id = confirmbox,
 			      body = ["Confirm password:",
 				      #password{id = password2, postback = confirm},
+				      "E-mail:",
+				      #textbox{id = email},
 				      #button{text = "Confirm", postback = confirm},
 				      #button{text = "Cancel", postback = cancel_confirm}]}],
 	       style = "display: none;"}
@@ -64,18 +66,21 @@ event(confirm) ->
     Username = wf:q(username),
     Password = wf:q(password),
     Password2 = wf:q(password2),
+    Email = wf:q(email),
+    ValidEmail = validator_is_email:validate(null, Email),
     wf:wire(lb, #hide{}),
-    case Password == Password2 of
-	true ->
-	    case umts_db:insert_user(Username, Password) of
+    if Password /= Password2 ->
+	    wf:flash("Password doesn't match");
+       not ValidEmail ->
+	    wf:flash("Please enter a valid email");
+       true ->
+	    case umts_db:insert_user(Username, Password, Email) of
 		{ok, NewID} ->
 		    wf:user(NewID),
 		    wf:redirect("/");
 		{fault, exists} ->
 		    wf:flash("Username already exists")
-	    end;
-	false ->
-	    wf:flash("Password doesn't match")
+	    end
     end;
 event(cancel_confirm) ->
     wf:wire(lb, #hide{}).

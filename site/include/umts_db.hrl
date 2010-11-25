@@ -1,4 +1,4 @@
--record(users, {id, name, password, display}).
+-record(users, {id, name, password, display, email}).
 -record(wtts, {id, timestamp, wanters = ordsets:new(), havers = ordsets:new()}).
 -record(auto_increment, {table, key}).
 -record(cards, {id, name, color=[]}).
