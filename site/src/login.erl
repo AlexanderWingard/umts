@@ -133,6 +133,6 @@ cookie_login() ->
     end.
 
 logout() ->
-    wf:cookie(username, ""),
-    wf:cookie(password, ""),
+    wf:cookie(username, undefined),
+    wf:cookie(password, undefined),
     wf:logout().

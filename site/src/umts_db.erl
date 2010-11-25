@@ -137,6 +137,9 @@ sort(Colors)->
               X <- Colors,
               lists:member(X,C#cards.color)].
 
+login(Name, Password) when Name == undefined;
+			   Password == undefined ->
+    not_found;
 login(Name, Password) ->
     Q = qlc:q([U#users.id || U <- mnesia:table(users),
 			     U#users.name == string:to_lower(Name), 
