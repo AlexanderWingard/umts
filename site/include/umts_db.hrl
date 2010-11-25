@@ -6,3 +6,5 @@
 -record(login_event, {user}).
 -record(register_event, {user}).
 -record(wtt_event, {user, card, kind}).
+
+%% mnesia:transform_table(users, fun({users, Id, Name, Password, Display}) -> {users, Id, Name, Password, Display, ""} end, [id, name, password, display, email]).
