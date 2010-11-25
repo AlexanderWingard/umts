@@ -48,7 +48,7 @@ event(login) ->
 	    wf:flash("Incorrect username or password");
 	Id ->
 	    wf:user(Id),
-	    wf:redirect("/")
+	    wf:redirect("start")
     end;
 event(register) ->
     Username = wf:q(username),

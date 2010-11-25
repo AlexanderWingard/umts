@@ -4,7 +4,9 @@
 
 -include("umts_db.hrl").
 
-main() -> 
+-define(NBR_NEWLY, 5).
+
+ main() -> 
     case wf:user() of
 	undefined ->
 	    wf:redirect("/login");
@@ -16,7 +18,7 @@ title() -> "Main".
 
 body() ->
     [#panel{id = leftnav, body = [user(), search()]},
-     #panel{id = content, body = content()}].
+     #panel{id = content, body = [sort(), content()]}].
 
 content() -> 
     [#panel{id = wtts, body = wtts()}].
@@ -29,14 +31,59 @@ user() ->
     User = umts_db:get_user(wf:user()),
     ["Signed in as: ", User#users.name, " ", #link{text = "Logout", postback = logout}].
 
+sort()->
+    [#panel{id = sort, body = [
+                #link{text = "Show all", url = "index" },
+                #checkbox{text = "Green", checked=false,
+                    postback={sort, "G", chbg}},
+                #checkbox{text = "Red", checked=false,
+                    postback={sort, "R", chbr}},
+                #checkbox{text = "Blue", checked=false, postback={sort, "U",
+                        chbu}},
+                #checkbox{text = "Black", checked=false, postback={sort, "B",
+                        chbb}},
+                #checkbox{text = "White", checked=false, postback={sort, "W",
+                        chbw}},
+                #checkbox{text = "Artifact", checked=false, postback={sort, "A",
+                        chba}},
+                #span{style="padding-left:50px", text = "Watch user:  " },
+                users_dropdown(),
+                #br{},
+                #hr{}
+        ]}].        
+
+users_dropdown()->
+    #dropdown{ id = userlist, options = [ #option{text=X#users.name,
+                value=X#users.id} || X<-umts_db:get_users()], 
+        postback = show_user
+    }.
+    
+
 event(Event) ->
     case wf:user() of
 	undefined ->
 	    wf:redirect("/login");
 	_ ->
 	    handle_event(Event)
-    end.
+    end. 
 
+update_sortlist(Color, Id)->
+    StateId = wf:state(Id),
+    On = case StateId of
+        undefined -> 1;
+        _-> (StateId + 1) rem 2
+    end,
+    wf:state(Id, On),
+    
+    State = wf:state(color),
+    C = case {State, On} of
+      {undefined,_}->[Color];
+      {_,1} -> [Color| State];
+      {_,0} -> lists:delete(Color, State)
+    end,
+    wf:state(color,C),
+    C.
+    
 handle_event(logout) ->
     wf:logout(),
     wf:redirect("/login");
@@ -45,6 +92,14 @@ handle_event(search) ->
     Result = umts_db:autocomplete_card(Request),
     Completions = [(card(C))#panel{id = "srch" ++ C#cards.id} || C <- lists:sublist(Result, 10)],
     wf:update(searchPanel, [wf:f("Found ~w matching cards", [length(Result)]), Completions]);
+handle_event({sort, Color, Id})->
+    %% TODO: Fix this to a better handlingi
+    C = update_sortlist(Color,Id), 
+    wf:update(wtts, [card(X) || X<- umts_db:sort(C)]);
+handle_event(show_user)->
+    [SelectedUserId] = wf:q(userlist),
+    wf:update(wtts, show_user(SelectedUserId));
+
 handle_event({wtt, Callback, Id}) ->
     %% TODO: Some more security here?
     umts_db:Callback(Id, wf:user()),
@@ -53,19 +108,23 @@ handle_event({wtt, Callback, Id}) ->
     %% TODO: Do we really need to redraw everything here?
     wf:update(wtts, wtts()).
 
+
 wtts() ->
     case catch list_to_integer(wf:path_info()) of
-	UserID when is_integer(UserID) ->
-	    User = umts_db:get_user(UserID),
-	    [#h1{text = User#users.display},
-	     #link{text = "Show all", url = "index" },
-	     #h2{text = "Wants:"},
-	     [card(C) || C <- umts_db:user_wtts(UserID, #wtts.wanters)],
-	     #h2{text = "Haves:"},
-	     [card(C) || C <- umts_db:user_wtts(UserID, #wtts.havers)]];
-	_ ->
-	    [card(C) || C <- umts_db:all_wtts()]
+	    UserID when is_integer(UserID) ->
+            show_user(UserID);
+	 	_ ->
+	        [card(C) || C <- umts_db:all_wtts()]
     end.
+
+show_user(UserID)->        
+    User = umts_db:get_user(UserID),
+	[#h1{text = User#users.display},
+%	 #link{text = "Show all", url = "index" },
+     #h2{text = "Wants:"},
+	 [card(C) || C <- umts_db:user_wtts(UserID, #wtts.wanters)],
+	 #h2{text = "Haves:"},
+	 [card(C) || C <- umts_db:user_wtts(UserID, #wtts.havers)]].
 
 card(Card) ->
     Id = Card#cards.id,
