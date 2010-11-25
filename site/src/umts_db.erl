@@ -31,7 +31,7 @@ insert_user(Name, Password, Email) ->
 						 name = string:to_lower(Name), 
 						 password = Password,
 						 display = Name,
-						 email = Email}),
+						 email = string:to_lower(Email)}),
 			{ok, NewID};
 		    [_Existing] ->
 			{fault, exists}
@@ -44,6 +44,13 @@ get_user(Id) ->
     T = fun() ->
 		[User] = mnesia:read(users, Id),
 		User
+	end,
+    {atomic, Result} = mnesia:transaction(T),
+    Result.
+
+find_user_email(Email) ->
+    T = fun() ->
+		mnesia:match_object(#users{email = string:to_lower(Email), _ = '_'})
 	end,
     {atomic, Result} = mnesia:transaction(T),
     Result.

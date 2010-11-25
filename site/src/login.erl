@@ -4,6 +4,7 @@
 
 -include("umts_db.hrl").
 
+
 main() -> #template { file="./templates/bare.html" }.
 
 title() -> "Login".
@@ -31,14 +32,23 @@ inner_body() ->
      #br{},
      #button{text = "Login", postback = login},
      #button{text = "Register", postback = register},
-     #lightbox{id = lb,  
-	       body = [#panel{id = confirmbox,
+     #br{},
+     #link{text = "Forgot my password", postback = show_forgot},
+     #lightbox{id = lbregister,  
+	       body = [#panel{class = "confirmbox",
 			      body = ["Confirm password:",
 				      #password{id = password2, postback = confirm},
 				      "E-mail:",
 				      #textbox{id = email},
 				      #button{text = "Confirm", postback = confirm},
-				      #button{text = "Cancel", postback = cancel_confirm}]}],
+				      #button{text = "Cancel", postback = cancel_lb}]}],
+	       style = "display: none;"},
+     #lightbox{id = lbforgot,  
+	       body = [#panel{class = "confirmbox",
+			      body = ["E-mail:",
+				      #textbox{id = forgotemail},
+				      #button{text = "Confirm", postback = forgot},
+				      #button{text = "Cancel", postback = cancel_lb}]}],
 	       style = "display: none;"}
     ].
 	
@@ -60,7 +70,7 @@ event(register) ->
 	true ->
 	    wf:flash("Please enter a username and password to register");
 	false ->
-	    wf:wire(lb, #show{})
+	    wf:wire(lbregister, #show{})
     end;
 event(confirm) ->
     Username = wf:q(username),
@@ -68,7 +78,7 @@ event(confirm) ->
     Password2 = wf:q(password2),
     Email = wf:q(email),
     ValidEmail = validator_is_email:validate(null, Email),
-    wf:wire(lb, #hide{}),
+    wf:wire(lbregister, #hide{}),
     if Password /= Password2 ->
 	    wf:flash("Password doesn't match");
        not ValidEmail ->
@@ -82,5 +92,25 @@ event(confirm) ->
 		    wf:flash("Username already exists")
 	    end
     end;
-event(cancel_confirm) ->
-    wf:wire(lb, #hide{}).
+event(forgot) ->
+    Email = wf:q(forgotemail),
+    wf:wire(lbforgot, #hide{}),
+    case umts_db:find_user_email(Email) of 
+	[] ->
+	    wf:flash("No user with that email found");
+	Emails ->
+	    lists:foreach(fun send_forgotmail/1, Emails),
+	    wf:flash("Information sent to " ++ Email)
+    end;
+event(show_forgot) ->
+    wf:wire(lbforgot, #show{});
+event(cancel_lb) ->
+    wf:wire(lbregister, #hide{}),
+    wf:wire(lbforgot, #hide{}).
+
+send_forgotmail(User) ->
+    Msg = esmtp_mime:msg(User#users.email,
+			 "alexander.wingard@gmail.com",
+			 "UMTS login information",
+			 "Username: " ++ User#users.name ++ "\nPassword: " ++ User#users.password),
+    esmtp:send(Msg).
