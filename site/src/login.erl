@@ -59,6 +59,7 @@ event(login) ->
 	not_found ->
 	    wf:flash("Incorrect username or password");
 	Id ->
+	    umts_eventlog:log_login(Id),
 	    wf:user(Id),
 	    wf:cookie(username, Username),
 	    wf:cookie(password, Password),
@@ -88,6 +89,7 @@ event(confirm) ->
        true ->
 	    case umts_db:insert_user(Username, Password, Email) of
 		{ok, NewID} ->
+		    umts_eventlog:log_register(NewID),
 		    wf:user(NewID),
 		    wf:redirect("/");
 		{fault, exists} ->

@@ -2,3 +2,7 @@
 -record(wtts, {id, timestamp, wanters = ordsets:new(), havers = ordsets:new()}).
 -record(auto_increment, {table, key}).
 -record(cards, {id, name, color=[]}).
+-record(events, {time, event}).
+-record(login_event, {user}).
+-record(register_event, {user}).
+-record(wtt_event, {user, card, kind}).

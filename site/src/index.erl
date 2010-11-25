@@ -102,7 +102,9 @@ handle_event(show_user)->
 
 handle_event({wtt, Callback, Id}) ->
     %% TODO: Some more security here?
-    umts_db:Callback(Id, wf:user()),
+    User = wf:user(),
+    umts_db:Callback(Id, User),
+    umts_eventlog:log_wtt(User, Id, Callback),
     Card = card(umts_db:get_card(Id)),
     wf:replace("srch" ++ Id, Card#panel{id = "srch" ++ Id}),
     %% TODO: Do we really need to redraw everything here?
