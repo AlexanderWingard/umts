@@ -60,6 +60,8 @@ event(login) ->
 	    wf:flash("Incorrect username or password");
 	Id ->
 	    wf:user(Id),
+	    wf:cookie(username, Username),
+	    wf:cookie(password, Password),
 	    wf:redirect("start")
     end;
 event(register) ->
@@ -104,6 +106,8 @@ event(forgot) ->
     end;
 event(show_forgot) ->
     wf:wire(lbforgot, #show{});
+event(cancel_confirm) ->
+    wf:wire(lb, #hide{});
 event(cancel_lb) ->
     wf:wire(lbregister, #hide{}),
     wf:wire(lbforgot, #hide{}).
@@ -114,3 +118,19 @@ send_forgotmail(User) ->
 			 "UMTS login information",
 			 "Username: " ++ User#users.name ++ "\nPassword: " ++ User#users.password),
     esmtp:send(Msg).
+
+cookie_login() ->
+    Username = wf:cookie(username),
+    Password = wf:cookie(password),
+    case umts_db:login(Username, Password) of
+	not_found ->
+	    false;
+	Id ->
+	    wf:user(Id),
+	    true
+    end.
+
+logout() ->
+    wf:cookie(username, ""),
+    wf:cookie(password, ""),
+    wf:logout().

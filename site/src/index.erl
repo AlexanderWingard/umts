@@ -6,11 +6,11 @@
 
 -define(NBR_NEWLY, 5).
 
- main() -> 
-    case wf:user() of
-	undefined ->
+main() -> 
+    case is_integer(wf:user()) orelse login:cookie_login() of
+	false ->
 	    wf:redirect("/login");
-	_ ->
+	true ->
 	    #template { file="./templates/bare.html" }
     end.
 
@@ -85,7 +85,7 @@ update_sortlist(Color, Id)->
     C.
     
 handle_event(logout) ->
-    wf:logout(),
+    login:logout(),
     wf:redirect("/login");
 handle_event(search) ->
     Request = wf:q(search),
