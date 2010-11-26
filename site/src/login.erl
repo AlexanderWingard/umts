@@ -61,8 +61,9 @@ event(login) ->
 	Id ->
 	    umts_eventlog:log_login(Id),
 	    wf:user(Id),
-	    wf:cookie(username, Username),
-	    wf:cookie(password, Password),
+	    %% Cookie stays for 2 months
+	    wf:cookie(username, Username, "/", 90000),
+	    wf:cookie(password, Password, "/", 90000),
 	    wf:redirect("start")
     end;
 event(register) ->
