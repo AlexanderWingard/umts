@@ -62,8 +62,8 @@ event(login) ->
 	    umts_eventlog:log_login(Id),
 	    wf:user(Id),
 	    %% Cookie stays for 2 months
-	    wf:cookie(username, Username, "/", 90000),
-	    wf:cookie(password, Password, "/", 90000),
+	    wf:cookie("username", Username, "", 90000),
+	    wf:cookie("password", Password, "", 90000),
 	    wf:redirect("start")
     end;
 event(register) ->
@@ -123,8 +123,8 @@ send_forgotmail(User) ->
     esmtp:send(Msg).
 
 cookie_login() ->
-    Username = wf:cookie(username),
-    Password = wf:cookie(password),
+    Username = wf:cookie("username"),
+    Password = wf:cookie("password"),
     case umts_db:login(Username, Password) of
 	not_found ->
 	    false;
@@ -134,6 +134,6 @@ cookie_login() ->
     end.
 
 logout() ->
-    wf:cookie(username, undefined),
-    wf:cookie(password, undefined),
+    wf:cookie("username", undefined),
+    wf:cookie("password", undefined),
     wf:logout().
