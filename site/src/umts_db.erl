@@ -54,6 +54,14 @@ insert_user(Name, Password) ->
     {atomic, NewID} = mnesia:transaction(T),
     NewID.
 
+update_lastlogin(Id, Timestamp)->
+    T = fun() ->
+		[U] = mnesia:read(users, Id),
+		ok = mnesia:write(U#users{lastlogin=Timestamp}) 
+	end,
+    {atomic, _} = mnesia:transaction(T),
+    ok.
+
 get_user(Id) ->
     T = fun() ->
 		[User] = mnesia:read(users, Id),
@@ -68,12 +76,12 @@ get_users()->
     {atomic, Result} = mnesia:transaction(T),
     Result.
 
-add_wanter(Id, User) -> update_wtt(Id, User, #wtts.wanters, fun
-        ordsets:add_element/2, now()).
+add_wanter(Id, User) -> 
+    update_wtt(Id, User, #wtts.wanters, fun ordsets:add_element/2,now()).
 del_wanter(Id, User) -> update_wtt(Id, User, #wtts.wanters, fun
         ordsets:del_element/2, undefined).
-add_haver(Id, User) -> update_wtt(Id, User, #wtts.havers, fun
-        ordsets:add_element/2, now()).
+add_haver(Id, User) ->
+    update_wtt(Id, User, #wtts.havers, fun ordsets:add_element/2, now()).
 del_haver(Id, User) -> update_wtt(Id, User, #wtts.havers, fun
         ordsets:del_element/2, undefined).
 
@@ -137,12 +145,40 @@ get_wtts(Id) ->
 	end,
     {atomic, Res} = mnesia:transaction(T),
     Res.
-		
-sort(Colors)->
-        [C || C<-all_wtts(),
-              X <- Colors,
-              lists:member(X,C#cards.color)].
 
+get_only_havers()->
+    Q = qlc:q([W || W <- mnesia:table(wtts),
+            W#wtts.wanters == []]),
+    T = fun()-> qlc:e(Q) end,
+    {atomic, Res} = mnesia:transaction(T),
+    Res.
+    
+get_only_wanters()->
+    Q = qlc:q([W || W <- mnesia:table(wtts),
+            W#wtts.havers == []]),
+    T = fun()-> qlc:e(Q) end,
+    {atomic, Res} = mnesia:transaction(T),
+    Res.
+
+sort(Colors)->
+    [C || C<-all_wtts(),
+          X <- Colors,
+          lists:member(X,C#cards.color)].
+
+sort2(L)->
+    Havers =  proplists:get_value(havers,L),
+    Wanters = proplists:get_value(wanters, L),
+    Q = qlc:q([C || C<- mnesia:table(cards),
+            W <- mnesia:table(wtts),
+            (( W#wtts.havers /= []) and Havers) or
+            (( W#wtts.wanters /= []) and Wanters),
+        W#cards.id==C#cards.id]),
+    T = fun()-> qlc:e(Q) end,
+    {atomic, Res} = mnesia:transaction(T),
+    
+    Colors = proplists:get_all_values(color, L),
+    [C || C <- Res, X<-Colors, lists:member(X,C#cards.color)].
+      
 login(Name, Password) ->
     Q = qlc:q([U#users.id || U <- mnesia:table(users),
 			     U#users.name == string:to_lower(Name), 
@@ -175,4 +211,7 @@ all(Table) ->
     T = fun() -> qlc:e(Q) end,
     {atomic, Res} = mnesia:transaction(T),
     Res.
+
+
+
     

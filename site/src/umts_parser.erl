@@ -7,7 +7,7 @@
 parse() -> 
     lists:foreach(fun parse/1, filelib:wildcard("MagicDB/*.xml")).
 
-parse(File) ->
+parse(File)  ->
     {ok, {_, Cards}, _Rest} = 
 	xmerl_sax_parser:file(File, [{event_fun, fun event_fun/3},
 				     {event_state, {0, []}}]),
@@ -38,3 +38,4 @@ event_fun({characters, Characters}, _, {Next, [Card | Acc]}) when Next > 0 ->
     {0, [setelement(Next, Card, Characters) | Acc]};
 event_fun(Event, Location, {Next, Acc}) ->
     {0, Acc}.
+

@@ -4,14 +4,14 @@
 
 -include("umts_db.hrl").
 
--define(NBR_NEWLY, 5).
-
- main() -> 
+main() -> 
     case wf:user() of
 	undefined ->
 	    wf:redirect("/login");
-	_ ->
-	    #template { file="./templates/bare.html" }
+	_User ->
+        wf:state(sort, [{havers,true},{wanters,
+                    true},{color,"U"},{color,"G"},{color,"B"},{color,"W"},{color,"R"},{color,"A"}]),
+        #template { file="./templates/bare.html" }
     end.
 
 title() -> "Main".
@@ -34,20 +34,24 @@ user() ->
 sort()->
     [#panel{id = sort, body = [
                 #link{text = "Show all", url = "index" },
-                #checkbox{text = "Green", checked=false,
+                #checkbox{text = "Green", checked=true,
                     postback={sort, "G", chbg}},
-                #checkbox{text = "Red", checked=false,
+                #checkbox{text = "Red", checked=true,
                     postback={sort, "R", chbr}},
-                #checkbox{text = "Blue", checked=false, postback={sort, "U",
+                #checkbox{text = "Blue", checked=true, postback={sort, "U",
                         chbu}},
-                #checkbox{text = "Black", checked=false, postback={sort, "B",
+                #checkbox{text = "Black", checked=true, postback={sort, "B",
                         chbb}},
-                #checkbox{text = "White", checked=false, postback={sort, "W",
+                #checkbox{text = "White", checked=true, postback={sort, "W",
                         chbw}},
-                #checkbox{text = "Artifact", checked=false, postback={sort, "A",
+                #checkbox{text = "Artifact", checked=true, postback={sort, "A",
                         chba}},
                 #span{style="padding-left:50px", text = "Watch user:  " },
                 users_dropdown(),
+                #span{style="padding-left:50px", text = "Show only:  " },
+                #checkbox{text ="Havers",checked=true, postback={sort, havers, hv}},
+                #checkbox{text ="Wanters",checked=true, postback={sort, wanters, wnt}},
+
                 #br{},
                 #hr{}
         ]}].        
@@ -57,8 +61,14 @@ users_dropdown()->
                 value=X#users.id} || X<-umts_db:get_users()], 
         postback = show_user
     }.
-    
 
+dropbox()->
+    #droppable{ tag=tradebox, accept_groups=cards, class="tradebox",
+        body="bytesbox" }.
+
+drop_event(T,R)->
+    io:format("Hej: kort: ~w, drop: ~w ~n", [T,R]).
+    
 event(Event) ->
     case wf:user() of
 	undefined ->
@@ -67,21 +77,28 @@ event(Event) ->
 	    handle_event(Event)
     end. 
 
-update_sortlist(Color, Id)->
-    StateId = wf:state(Id),
-    On = case StateId of
-        undefined -> 1;
-        _-> (StateId + 1) rem 2
+is_checked(CheckboxId, Default)->
+    State = wf:state(CheckboxId),
+    On = case State of
+        undefined -> Default;
+        _-> not State
     end,
-    wf:state(Id, On),
+    wf:state(CheckboxId, On),
+    On.
+
+update_sortlist(Sort, _Id) when is_atom(Sort)->
+    S = wf:state(sort),
+    C = [{Sort, is_checked(Sort,false)}|lists:keydelete(Sort,1,S)],
+    wf:state(sort,C),
+    C;
     
-    State = wf:state(color),
-    C = case {State, On} of
-      {undefined,_}->[Color];
-      {_,1} -> [Color| State];
-      {_,0} -> lists:delete(Color, State)
+update_sortlist(Color, Id)->
+    S = wf:state(sort),
+    C = case is_checked(Id, false) of
+      true -> [{color,Color} |S];
+      false -> lists:delete({color, Color}, S)
     end,
-    wf:state(color,C),
+    wf:state(sort,C),
     C.
     
 handle_event(logout) ->
@@ -92,10 +109,10 @@ handle_event(search) ->
     Result = umts_db:autocomplete_card(Request),
     Completions = [(card(C))#panel{id = "srch" ++ C#cards.id} || C <- lists:sublist(Result, 10)],
     wf:update(searchPanel, [wf:f("Found ~w matching cards", [length(Result)]), Completions]);
-handle_event({sort, Color, Id})->
+handle_event({sort, Sort, Id})->
     %% TODO: Fix this to a better handlingi
-    C = update_sortlist(Color,Id), 
-    wf:update(wtts, [card(X) || X<- umts_db:sort(C)]);
+    C = update_sortlist(Sort,Id),
+    wf:update(wtts, [card(X) || X<- umts_db:sort2(C)]);
 handle_event(show_user)->
     [SelectedUserId] = wf:q(userlist),
     wf:update(wtts, show_user(SelectedUserId));
@@ -151,8 +168,9 @@ card(Card) ->
 		    true ->
 			 ""
 		 end,
-
-    #panel{id = Id,
+     %  #draggable{ class="drag", revert=false,clone=false,tag=Id,group=cards,
+                  % body= 
+                   #panel{id = Id,
 	   class = "card",
 	   body = [
 		   #image{image = "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=" ++ Card#cards.id ++ "&type=card",
@@ -163,7 +181,7 @@ card(Card) ->
 				   "/",
 				  tooltip("H: ", "Havers:", Wtt#wtts.havers,  HavePB)
 				 ]}
-		  ]}.
+         ]}.
 
 match_class(User, I, Wtt) ->
     I andalso ordsets:size(ordsets:del_element(User, Wtt)) > 0.

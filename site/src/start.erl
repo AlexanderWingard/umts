@@ -3,7 +3,7 @@
 -include_lib("nitrogen/include/wf.hrl").
 
 -include("umts_db.hrl").
--define(NBR_NEWLY,5).
+-define(NBR_NEWLY,9).
 main() -> #template { file="./templates/bare.html" }.
 
 title() -> "Login".
@@ -24,13 +24,16 @@ body() ->
 				  omega=true, 
                   body=timestamp()
               }]}]}].
-
-              
                 
 timestamp()->
-    Sorted = lists:keysort(#wtts.timestamp, umts_db:get_updated_wtts()),
-    [#flash{},#h2{text="Newly added cards"},
+    UserId = wf:user(),
+    User = umts_db:get_user(UserId),
+    Show = 
+    [#flash{},#h2{text="Added cards since last login"},
         [index:card(umts_db:get_card( W#wtts.id )) ||
-            W<-lists:sublist(Sorted,?NBR_NEWLY)]].
+            W <- umts_db:get_updated_wtts(),
+            W#wtts.timestamp > User#users.lastlogin]],
+    umts_db:update_lastlogin(UserId, now()),
+    Show.
 
 

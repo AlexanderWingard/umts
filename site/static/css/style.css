@@ -70,6 +70,20 @@ a:hover, a:active {
   padding: 4px;
 }
 
+.wfid_rightnav  {
+  text-align: center;
+  position: fixed;
+  float: right;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 250px;
+  overflow:auto;
+  margin: 0;
+  padding: 1px;
+  border-right: 4px solid #ddd;
+}
+
 .wfid_content {    
     margin-left: 290px;
 }
@@ -119,6 +133,10 @@ a:hover, a:active {
     height: 310px;
 }
 
+.drag {
+    position: relative;
+    display: inline;
+}
 .wtt {
     font-size: 12px;
     line-height: 23px;
@@ -179,4 +197,12 @@ a:hover, a:active {
 .matchwtt {
     border-color: #04B507;
     background-color: #A3F7A5;
+}
+
+.tradebox {
+    border-color: black;
+    background-color: #b0c4de;
+    border: 5px solid gray;
+    width: 400px;
+    height: 300px;
 }

@@ -70,6 +70,7 @@ event(confirm) ->
 	    case umts_db:insert_user(Username, Password) of
 		{ok, NewID} ->
 		    wf:user(NewID),
+            umts_db:update_lastlogin(NewID, now()),
 		    wf:redirect("/");
 		{fault, exists} ->
 		    wf:flash("Username already exists")
