@@ -15,27 +15,13 @@ reinstall() ->
     create_tables().
 
 create_tables() ->
-    {atomic, ok} = mnesia:create_table(users, [{attributes, record_info(fields, users)}, {disc_copies,[node()]}]),
-    {atomic, ok} = mnesia:create_table(wtts, [{attributes, record_info(fields, wtts)}, {disc_copies,[node()]}]),
-    {atomic, ok} = mnesia:create_table(cards, [{attributes, record_info(fields, cards)}, {disc_copies,[node()]}]),
-    {atomic, ok} = mnesia:create_table(auto_increment, [{attributes, record_info(fields, auto_increment)}, {disc_copies,[node()]}]).
+    mnesia:create_table(users, [{attributes, record_info(fields, users)}, {disc_copies,[node()]}]),
+    mnesia:create_table(wtts, [{attributes, record_info(fields, wtts)}, {disc_copies,[node()]}]),
+    mnesia:create_table(cards, [{attributes, record_info(fields, cards)}, {disc_copies,[node()]}]),
+    mnesia:create_table(events, [{attributes, record_info(fields, events)}, {disc_copies, [node()]}]),
+    mnesia:create_table(auto_increment, [{attributes, record_info(fields, auto_increment)}, {disc_copies,[node()]}]).
 
-transform() ->
-    transform(0).
-
-transform(0) ->
-    T = fun({users, ID, Name, Password}) ->
-		#users{id = ID,
-		       name = Name,
-		       password = Password,
-		       display = Name}
-	end,
-    mnesia:transform_table(users, T, record_info(fields, users)),
-    transform(1);
-transform(_) ->
-    ok.
-
-insert_user(Name, Password) ->
+insert_user(Name, Password, Email) ->
     Q = qlc:q([U#users.id || U <- mnesia:table(users),
 			     U#users.name == Name]),
     T = fun() ->
@@ -45,7 +31,8 @@ insert_user(Name, Password) ->
 			ok = mnesia:write(#users{id = NewID, 
 						 name = string:to_lower(Name), 
 						 password = Password,
-						 display = Name}),
+						 display = Name,
+						 email = string:to_lower(Email)}),
 			{ok, NewID};
 		    [_Existing] ->
 			{fault, exists}
@@ -66,6 +53,13 @@ get_user(Id) ->
     T = fun() ->
 		[User] = mnesia:read(users, Id),
 		User
+	end,
+    {atomic, Result} = mnesia:transaction(T),
+    Result.
+
+find_user_email(Email) ->
+    T = fun() ->
+		mnesia:match_object(#users{email = string:to_lower(Email), _ = '_'})
 	end,
     {atomic, Result} = mnesia:transaction(T),
     Result.
@@ -146,20 +140,6 @@ get_wtts(Id) ->
     {atomic, Res} = mnesia:transaction(T),
     Res.
 
-get_only_havers()->
-    Q = qlc:q([W || W <- mnesia:table(wtts),
-            W#wtts.wanters == []]),
-    T = fun()-> qlc:e(Q) end,
-    {atomic, Res} = mnesia:transaction(T),
-    Res.
-    
-get_only_wanters()->
-    Q = qlc:q([W || W <- mnesia:table(wtts),
-            W#wtts.havers == []]),
-    T = fun()-> qlc:e(Q) end,
-    {atomic, Res} = mnesia:transaction(T),
-    Res.
-
 sort(Colors)->
     [C || C<-all_wtts(),
           X <- Colors,
@@ -179,6 +159,9 @@ sort2(L)->
     Colors = proplists:get_all_values(color, L),
     [C || C <- Res, X<-Colors, lists:member(X,C#cards.color)].
       
+login(Name, Password) when Name == undefined;
+			   Password == undefined ->
+    not_found;
 login(Name, Password) ->
     Q = qlc:q([U#users.id || U <- mnesia:table(users),
 			     U#users.name == string:to_lower(Name), 
@@ -205,6 +188,7 @@ get_card(Id) ->
 	end,
     {atomic, Result} = mnesia:transaction(T),
     Result.
+
 
 all(Table) ->
     Q = qlc:q([R || R <- mnesia:table(Table)]),

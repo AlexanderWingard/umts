@@ -4,6 +4,7 @@
 
 -include("umts_db.hrl").
 
+
 main() -> #template { file="./templates/bare.html" }.
 
 title() -> "Login".
@@ -31,12 +32,23 @@ inner_body() ->
      #br{},
      #button{text = "Login", postback = login},
      #button{text = "Register", postback = register},
-     #lightbox{id = lb,  
-	       body = [#panel{id = confirmbox,
+     #br{},
+     #link{text = "Forgot my password", postback = show_forgot},
+     #lightbox{id = lbregister,  
+	       body = [#panel{class = "confirmbox",
 			      body = ["Confirm password:",
 				      #password{id = password2, postback = confirm},
+				      "E-mail:",
+				      #textbox{id = email},
 				      #button{text = "Confirm", postback = confirm},
-				      #button{text = "Cancel", postback = cancel_confirm}]}],
+				      #button{text = "Cancel", postback = cancel_lb}]}],
+	       style = "display: none;"},
+     #lightbox{id = lbforgot,  
+	       body = [#panel{class = "confirmbox",
+			      body = ["E-mail:",
+				      #textbox{id = forgotemail},
+				      #button{text = "Confirm", postback = forgot},
+				      #button{text = "Cancel", postback = cancel_lb}]}],
 	       style = "display: none;"}
     ].
 	
@@ -47,7 +59,11 @@ event(login) ->
 	not_found ->
 	    wf:flash("Incorrect username or password");
 	Id ->
+	    umts_eventlog:log_login(Id),
 	    wf:user(Id),
+	    %% Cookie stays for 2 months
+	    wf:cookie("username", Username, "", 90000),
+	    wf:cookie("password", Password, "", 90000),
 	    wf:redirect("start")
     end;
 event(register) ->
@@ -58,25 +74,69 @@ event(register) ->
 	true ->
 	    wf:flash("Please enter a username and password to register");
 	false ->
-	    wf:wire(lb, #show{})
+	    wf:wire(lbregister, #show{})
     end;
 event(confirm) ->
     Username = wf:q(username),
     Password = wf:q(password),
     Password2 = wf:q(password2),
-    wf:wire(lb, #hide{}),
-    case Password == Password2 of
-	true ->
-	    case umts_db:insert_user(Username, Password) of
+    Email = wf:q(email),
+    ValidEmail = validator_is_email:validate(null, Email),
+    wf:wire(lbregister, #hide{}),
+    if Password /= Password2 ->
+	    wf:flash("Password doesn't match");
+       not ValidEmail ->
+	    wf:flash("Please enter a valid email");
+       true ->
+	    case umts_db:insert_user(Username, Password, Email) of
 		{ok, NewID} ->
+		    umts_eventlog:log_register(NewID),
 		    wf:user(NewID),
             umts_db:update_lastlogin(NewID, now()),
 		    wf:redirect("/");
 		{fault, exists} ->
 		    wf:flash("Username already exists")
-	    end;
-	false ->
-	    wf:flash("Password doesn't match")
+	    end
     end;
+event(forgot) ->
+    Email = wf:q(forgotemail),
+    wf:wire(lbforgot, #hide{}),
+    case umts_db:find_user_email(Email) of 
+	[] ->
+	    wf:flash("No user with that email found");
+	Emails ->
+	    lists:foreach(fun send_forgotmail/1, Emails),
+	    wf:flash("Information sent to " ++ Email)
+    end;
+event(show_forgot) ->
+    wf:wire(lbforgot, #show{});
 event(cancel_confirm) ->
-    wf:wire(lb, #hide{}).
+    wf:wire(lb, #hide{});
+event(cancel_lb) ->
+    wf:wire(lbregister, #hide{}),
+    wf:wire(lbforgot, #hide{}).
+
+send_forgotmail(User) ->
+    Msg = esmtp_mime:msg(User#users.email,
+			 "alexander.wingard@gmail.com",
+			 "UMTS login information",
+			 "Username: " ++ User#users.name ++ "\nPassword: " ++ User#users.password),
+    esmtp:send(Msg).
+
+cookie_login() ->
+    Username = wf:cookie("username"),
+    Password = wf:cookie("password"),
+    case umts_db:login(Username, Password) of
+	not_found ->
+	    false;
+	Id ->
+	    wf:user(Id),
+        umts_db:update_lastlogin(Id, now()),
+        wf:redirect("start"),
+        true
+    end.
+
+logout() ->
+    wf:cookie("username", undefined),
+    wf:cookie("password", undefined),
+    wf:logout().

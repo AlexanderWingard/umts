@@ -1,1 +1,1 @@
-"c:\Program Files\erl5.8.1\bin\werl.exe" -sname umts -pa "./site/ebin" -pa "../nitrogen/apps/nitrogen/ebin" -pa "../nitrogen/apps/simple_bridge/ebin" -pa "../nitrogen/apps/nprocreg/ebin" -pa "./ebin"
+"c:\Program Files\erl5.8.1\bin\werl.exe" -config apps -sname umts -pa "./site/ebin" -pa "../nitrogen/apps/nitrogen/ebin" -pa "../nitrogen/apps/simple_bridge/ebin" -pa "../nitrogen/apps/nprocreg/ebin" -pa "../esmtp/ebin" -pa "./ebin" -eval "lists:foreach(fun application:start/1, [sasl, nprocreg, esmtp, umts])."

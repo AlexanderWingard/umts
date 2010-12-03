@@ -5,11 +5,11 @@
 -include("umts_db.hrl").
 
 main() -> 
-    case wf:user() of
-	undefined ->
+    case is_integer(wf:user()) orelse login:cookie_login() of
+	false ->
 	    wf:redirect("/login");
-	_User ->
-        wf:state(sort, [{havers,true},{wanters,
+    true ->
+	    wf:state(sort, [{havers,true},{wanters,
                     true},{color,"U"},{color,"G"},{color,"B"},{color,"W"},{color,"R"},{color,"A"}]),
         #template { file="./templates/bare.html" }
     end.
@@ -102,7 +102,7 @@ update_sortlist(Color, Id)->
     C.
     
 handle_event(logout) ->
-    wf:logout(),
+    login:logout(),
     wf:redirect("/login");
 handle_event(search) ->
     Request = wf:q(search),
@@ -119,7 +119,9 @@ handle_event(show_user)->
 
 handle_event({wtt, Callback, Id}) ->
     %% TODO: Some more security here?
-    umts_db:Callback(Id, wf:user()),
+    User = wf:user(),
+    umts_db:Callback(Id, User),
+    umts_eventlog:log_wtt(User, Id, Callback),
     Card = card(umts_db:get_card(Id)),
     wf:replace("srch" ++ Id, Card#panel{id = "srch" ++ Id}),
     %% TODO: Do we really need to redraw everything here?
