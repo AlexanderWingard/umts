@@ -131,7 +131,6 @@ cookie_login() ->
 	    false;
 	Id ->
 	    wf:user(Id),
-        umts_db:update_lastlogin(Id, now()),
         wf:redirect("start"),
         true
     end.
