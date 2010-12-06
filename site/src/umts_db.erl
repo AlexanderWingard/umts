@@ -2,6 +2,7 @@
 -compile(export_all).
 
 -include("umts_db.hrl").
+-include_lib("stdlib/include/ms_transform.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 
 init() ->
@@ -40,14 +41,6 @@ insert_user(Name, Password, Email) ->
         end,
     {atomic, NewID} = mnesia:transaction(T),
     NewID.
-
-update_lastlogin(Id, Timestamp)->
-    T = fun() ->
-		[U] = mnesia:read(users, Id),
-		ok = mnesia:write(U#users{lastlogin=Timestamp}) 
-	end,
-    {atomic, _} = mnesia:transaction(T),
-    ok.
 
 get_user(Id) ->
     T = fun() ->
@@ -121,9 +114,9 @@ user_wtts(User, Kind) ->
     {atomic, Result} = mnesia:transaction(T),
     Result.
 
-get_updated_wtts()->
+get_updated_wtts(LastLogin)->
     Q = qlc:q([W || W <- mnesia:table(wtts),
-            W#wtts.timestamp /= undefined]),
+		    W#wtts.timestamp > LastLogin]),
     T = fun() -> qlc:e(Q) end,
     {atomic, Result} = mnesia:transaction(T),
     Result.
@@ -163,16 +156,25 @@ login(Name, Password) when Name == undefined;
 			   Password == undefined ->
     not_found;
 login(Name, Password) ->
-    Q = qlc:q([U#users.id || U <- mnesia:table(users),
-			     U#users.name == string:to_lower(Name), 
-			     U#users.password == Password]),
-    T = fun() -> qlc:e(Q) end,
-    case mnesia:transaction(T) of
-        {atomic, []} ->
-            not_found;
-        {atomic, [UserID]} ->
-            UserID
-    end.
+    Lower = string:to_lower(Name),
+    MS = ets:fun2ms(fun(User = #users{name = Username, 
+				      password = CorrectPass})
+			  when Username == Lower,
+			       Password == CorrectPass->
+			    User
+		    end),
+    T = fun() -> 
+		case mnesia:select(users, MS, write) of
+		    [] ->
+			not_found;
+		    [User] ->
+			wf:session(lastlogin, User#users.lastlogin),
+			mnesia:write(User#users{lastlogin = now()}),
+			User#users.id
+		end
+	end,
+    {atomic, Result} = mnesia:transaction(T),
+    Result.
 
 autocomplete_card(Search) ->
     Q = qlc:q([C || C <- mnesia:table(cards),

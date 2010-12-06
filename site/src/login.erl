@@ -92,7 +92,6 @@ event(confirm) ->
 		{ok, NewID} ->
 		    umts_eventlog:log_register(NewID),
 		    wf:user(NewID),
-            umts_db:update_lastlogin(NewID, now()),
 		    wf:redirect("/");
 		{fault, exists} ->
 		    wf:flash("Username already exists")
@@ -131,7 +130,6 @@ cookie_login() ->
 	    false;
 	Id ->
 	    wf:user(Id),
-        umts_db:update_lastlogin(Id, now()),
         wf:redirect("start"),
         true
     end.

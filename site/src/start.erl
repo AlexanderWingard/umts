@@ -26,14 +26,8 @@ body() ->
               }]}]}].
                 
 timestamp()->
-    UserId = wf:user(),
-    User = umts_db:get_user(UserId),
-    Show = 
+    LastLogin = wf:session_default(lastlogin, now()),
     [#flash{},#h2{text="Added cards since last login"},
-        [index:card(umts_db:get_card( W#wtts.id )) ||
-            W <- umts_db:get_updated_wtts(),
-            W#wtts.timestamp > User#users.lastlogin]],
-    umts_db:update_lastlogin(UserId, now()),
-    Show.
-
+     [index:card(umts_db:get_card( W#wtts.id )) ||
+	 W <- umts_db:get_updated_wtts(LastLogin)]].
 
