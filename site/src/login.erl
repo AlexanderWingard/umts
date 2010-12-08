@@ -130,7 +130,8 @@ cookie_login() ->
 	    false;
 	Id ->
 	    wf:user(Id),
-        wf:redirect("start"),
+	    umts_eventlog:log_login(Id),
+	    wf:redirect("start"),
         true
     end.
 
