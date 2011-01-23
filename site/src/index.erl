@@ -3,7 +3,7 @@
 -include_lib("nitrogen_core/include/wf.hrl").
 
 -include("umts_db.hrl").
-
+-include("records.hrl").
 main() -> 
     case is_integer(wf:user()) orelse login:cookie_login() of
 	false ->
@@ -85,21 +85,6 @@ is_checked(CheckboxId, Default)->
     end,
     wf:state(CheckboxId, On),
     On.
-
-update_sortlist(Sort, _Id) when is_atom(Sort)->
-    S = wf:state(sort),
-    C = [{Sort, is_checked(Sort,false)}|lists:keydelete(Sort,1,S)],
-    wf:state(sort,C),
-    C;
-    
-update_sortlist(Color, Id)->
-    S = wf:state(sort),
-    C = case is_checked(Id, false) of
-      true -> [{color,Color} |S];
-      false -> lists:delete({color, Color}, S)
-    end,
-    wf:state(sort,C),
-    C.
     
 handle_event(logout) ->
     login:logout(),
@@ -107,12 +92,8 @@ handle_event(logout) ->
 handle_event(search) ->
     Request = wf:q(search),
     Result = umts_db:autocomplete_card(Request),
-    Completions = [(card(C))#panel{id = "srch" ++ C#cards.id} || C <- lists:sublist(Result, 10)],
+    Completions = [#card{uid = C} || C <- lists:sublist(Result, 10)],
     wf:update(searchPanel, [wf:f("Found ~w matching cards", [length(Result)]), Completions]);
-handle_event({sort, Sort, Id})->
-    %% TODO: Fix this to a better handlingi
-    C = update_sortlist(Sort,Id),
-    wf:update(wtts, [card(X) || X<- umts_db:sort2(C)]);
 handle_event(show_user)->
     [SelectedUserId] = wf:q(userlist),
     wf:update(wtts, show_user(SelectedUserId));
@@ -122,18 +103,16 @@ handle_event({wtt, Callback, Id}) ->
     User = wf:user(),
     umts_db:Callback(Id, User),
     umts_eventlog:log_wtt(User, Id, Callback),
-    Card = card(umts_db:get_card(Id)),
-    wf:replace("srch" ++ Id, Card#panel{id = "srch" ++ Id}),
-    %% TODO: Do we really need to redraw everything here?
+    Card = #card{uid = Id},
+    wf:replace("\#\#" ++ Id, Card),
     wf:update(wtts, wtts()).
-
 
 wtts() ->
     case catch list_to_integer(wf:path_info()) of
 	    UserID when is_integer(UserID) ->
             show_user(UserID);
 	 	_ ->
-	        [card(C) || C <- umts_db:all_wtts()]
+	        [#card{uid = C} || C <- umts_db:all_wtts()]
     end.
 
 show_user(UserID)->        
@@ -141,61 +120,7 @@ show_user(UserID)->
 	[#h1{text = User#users.display},
 %	 #link{text = "Show all", url = "index" },
      #h2{text = "Wants:"},
-	 [card(C) || C <- umts_db:user_wtts(UserID, #wtts.wanters)],
+	 [#card{uid = C} || C <- umts_db:user_wtts(UserID, #wtts.wanters)],
 	 #h2{text = "Haves:"},
-	 [card(C) || C <- umts_db:user_wtts(UserID, #wtts.havers)]].
+	 [#card{uid = C} || C <- umts_db:user_wtts(UserID, #wtts.havers)]].
 
-card(Card) ->
-    Id = Card#cards.id,
-    User = wf:user(),
-    Wtt = umts_db:get_wtts(Id),
-    Iwant = ordsets:is_element(User, Wtt#wtts.wanters),
-    Ihave = ordsets:is_element(User, Wtt#wtts.havers),
-    WantPB = case Iwant of
-		 true ->  {wtt, del_wanter, Id};
-		 false -> {wtt, add_wanter, Id}
-	     end,
-    HavePB = case Ihave of
-		 true -> {wtt, del_haver, Id};
-		 false ->{wtt, add_haver, Id}
-	     end,
-
-    Match = match_class(User, Iwant, Wtt#wtts.havers) orelse
-	match_class(User, Ihave, Wtt#wtts.wanters),
-
-    ExtraClass = if Match ->
-			 " matchwtt";
-		    Iwant orelse Ihave ->
-			 " iwtt";
-		    true ->
-			 ""
-		 end,
-     %  #draggable{ class="drag", revert=false,clone=false,tag=Id,group=cards,
-                  % body= 
-                   #panel{id = Id,
-	   class = "card",
-	   body = [
-		   #image{image = "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=" ++ Card#cards.id ++ "&type=card",
-			  alt = Card#cards.name},
-		   #panel{class = "wtt" ++ ExtraClass,
-			   body = [
-				  tooltip("W: ", "Wanters:", Wtt#wtts.wanters, WantPB),
-				   "/",
-				  tooltip("H: ", "Havers:", Wtt#wtts.havers,  HavePB)
-				 ]}
-         ]}.
-
-match_class(User, I, Wtt) ->
-    I andalso ordsets:size(ordsets:del_element(User, Wtt)) > 0.
-	    
-
-tooltip(Prefix, Title, Wtt, Postback) ->
-    #panel{class= "wtt2", 
-	   body = [#link{text = [Prefix, integer_to_list(length(Wtt))], postback = Postback},
-		   #panel{body = [#h3{text = Title}, 
-				  #list{body = lists:map(fun(UserID) ->
-								 User = umts_db:get_user(UserID),
-								 #listitem{body = #link{text = User#users.display, 
-											url = "/index/" ++ integer_to_list(User#users.id)}}
-							 end,
-							 Wtt)}]}]}.

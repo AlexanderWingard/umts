@@ -1,0 +1,1 @@
+-record(card, {?ELEMENT_BASE(element_card), uid}).

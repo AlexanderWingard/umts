@@ -98,24 +98,20 @@ update_wtt(Id, User, Kind, Fun, Timestamp) ->
     Wtt.
 
 all_wtts() ->
-    Q = qlc:q([C || C <- mnesia:table(cards),
-		    W <- mnesia:table(wtts),
-		    C#cards.id == W#wtts.id]),
+    Q = qlc:q([W#wtts.id || W <- mnesia:table(wtts)]),
     T = fun() -> qlc:e(Q) end,
     {atomic, Result} = mnesia:transaction(T),
      Result.
 
 user_wtts(User, Kind) ->
-    Q = qlc:q([C || C <- mnesia:table(cards),
-		    W <- mnesia:table(wtts),
-		    C#cards.id == W#wtts.id,
-		    ordsets:is_element(User, element(Kind, W))]),
+    Q = qlc:q([W#wtts.id || W <- mnesia:table(wtts),
+			    ordsets:is_element(User, element(Kind, W))]),
     T = fun() -> qlc:e(Q) end,
     {atomic, Result} = mnesia:transaction(T),
     Result.
 
 get_updated_wtts(LastLogin)->
-    Q = qlc:q([W || W <- mnesia:table(wtts),
+    Q = qlc:q([W#wtts.id || W <- mnesia:table(wtts),
 		    W#wtts.timestamp > LastLogin]),
     T = fun() -> qlc:e(Q) end,
     {atomic, Result} = mnesia:transaction(T),
@@ -177,8 +173,8 @@ login(Name, Password) ->
     Result.
 
 autocomplete_card(Search) ->
-    Q = qlc:q([C || C <- mnesia:table(cards),
-		    string:str(string:to_lower(C#cards.name), string:to_lower(Search)) > 0]),
+    Q = qlc:q([C#cards.id || C <- mnesia:table(cards),
+			     string:str(string:to_lower(C#cards.name), string:to_lower(Search)) > 0]),
     T = fun() -> qlc:e(Q) end,
     {atomic, Res} = mnesia:transaction(T),
      Res.
