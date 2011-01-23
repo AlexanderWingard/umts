@@ -1,6 +1,6 @@
 -module (index).
 -compile(export_all).
--include_lib("nitrogen/include/wf.hrl").
+-include_lib("nitrogen_core/include/wf.hrl").
 
 -include("umts_db.hrl").
 
@@ -67,7 +67,7 @@ dropbox()->
         body="bytesbox" }.
 
 drop_event(T,R)->
-    io:format("Hej: kort: ~w, drop: ~w ~n", [T,R]).
+    io:format("Hej: kor: ~w, drop: ~w ~n", [T,R]).
     
 event(Event) ->
     case wf:user() of

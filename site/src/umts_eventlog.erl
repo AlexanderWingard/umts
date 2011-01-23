@@ -1,6 +1,6 @@
 -module(umts_eventlog).
 -compile(export_all).
--include_lib("nitrogen/include/wf.hrl").
+-include_lib("nitrogen_core/include/wf.hrl").
 
 -include("umts_db.hrl").
 

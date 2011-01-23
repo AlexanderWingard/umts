@@ -7,7 +7,7 @@ Here are some general pointers to get started with development.
 **1. (once)** Get a copy of the MagicDB folder from Magic Assistant, or [download a copy](http://dl.dropbox.com/u/2243552/MagicDB.tar.gz) and unpack it into the **site/** directory.
 
 **2. (once)** Link or copy library files from nitrogen to site directory.
-    ln -s nitrogen/apps/nitrogen/www/ site/static/nitrogen
+    ln -s nitrogen/deps/nitrogen_core/www/ site/static/nitrogen
 
 **3. (once)** Initialize and update the submodules, this will download Nitrogen from GitHub.
     git submodule init
