@@ -26,11 +26,11 @@ insert_user(Name, Password, Email) ->
     Q = qlc:q([U#users.id || U <- mnesia:table(users),
 			     U#users.name == Name]),
     T = fun() ->
-		case qlc:e(Q) of 
+		case qlc:e(Q) of
 		    [] ->
 			NewID = mnesia:dirty_update_counter(auto_increment, users, 1),
-			ok = mnesia:write(#users{id = NewID, 
-						 name = string:to_lower(Name), 
+			ok = mnesia:write(#users{id = NewID,
+						 name = string:to_lower(Name),
 						 password = Password,
 						 display = Name,
 						 email = string:to_lower(Email)}),
@@ -63,14 +63,14 @@ get_users()->
     {atomic, Result} = mnesia:transaction(T),
     Result.
 
-add_wanter(Id, User) -> 
+add_wanter(Id, User) ->
     update_wtt(Id, User, #wtts.wanters, fun ordsets:add_element/2,now()).
 del_wanter(Id, User) -> update_wtt(Id, User, #wtts.wanters, fun
-        ordsets:del_element/2, undefined).
+								ordsets:del_element/2, undefined).
 add_haver(Id, User) ->
     update_wtt(Id, User, #wtts.havers, fun ordsets:add_element/2, now()).
 del_haver(Id, User) -> update_wtt(Id, User, #wtts.havers, fun
-        ordsets:del_element/2, undefined).
+							      ordsets:del_element/2, undefined).
 
 update_wtt(Id, User, Kind, Fun, Timestamp) ->
     T = fun() ->
@@ -82,10 +82,10 @@ update_wtt(Id, User, Kind, Fun, Timestamp) ->
 		      end,
 		Traders = element(Kind, Old),
 		Updated1 = setelement(Kind, Old, Fun(User, Traders)),
-        Updated = case Timestamp of
-            undefined -> Updated1;
-            _-> Updated1#wtts{timestamp=Timestamp}
-        end,
+		Updated = case Timestamp of
+			      undefined -> Updated1;
+			      _-> Updated1#wtts{timestamp=Timestamp}
+			  end,
 		case {ordsets:size(Updated#wtts.havers), ordsets:size(Updated#wtts.wanters)} of
 		    {0, 0} ->
 			ok = mnesia:delete({wtts, Id});
@@ -97,11 +97,24 @@ update_wtt(Id, User, Kind, Fun, Timestamp) ->
     {atomic, Wtt} = mnesia:transaction(T),
     Wtt.
 
-all_wtts() ->
-    Q = qlc:q([W#wtts.id || W <- mnesia:table(wtts)]),
+all_wtts(Filters) ->
+    Q = qlc:q([W#wtts.id || W <- mnesia:table(wtts),
+			    filter(Filters, W)]),
     T = fun() -> qlc:e(Q) end,
     {atomic, Result} = mnesia:transaction(T),
-     Result.
+    Result.
+
+filter([{age, Days} | Filters], Wtt = #wtts{timestamp = Timestamp}) ->
+    {Mega, Secs, Milli} = now(),
+    Then = {Mega, Secs - 86400 * Days, Milli},
+    case Timestamp >= Then of
+	true ->
+	    filter(Filters, Wtt);
+	false ->
+	    false
+    end;
+filter([], _) ->
+    true.
 
 user_wtts(User, Kind) ->
     Q = qlc:q([W#wtts.id || W <- mnesia:table(wtts),
@@ -112,7 +125,7 @@ user_wtts(User, Kind) ->
 
 get_updated_wtts(LastLogin)->
     Q = qlc:q([W#wtts.id || W <- mnesia:table(wtts),
-		    W#wtts.timestamp > LastLogin]),
+			    W#wtts.timestamp > LastLogin]),
     T = fun() -> qlc:e(Q) end,
     {atomic, Result} = mnesia:transaction(T),
     Result.
@@ -129,37 +142,18 @@ get_wtts(Id) ->
     {atomic, Res} = mnesia:transaction(T),
     Res.
 
-sort(Colors)->
-    [C || C<-all_wtts(),
-          X <- Colors,
-          lists:member(X,C#cards.color)].
-
-sort2(L)->
-    Havers =  proplists:get_value(havers,L),
-    Wanters = proplists:get_value(wanters, L),
-    Q = qlc:q([C || C<- mnesia:table(cards),
-            W <- mnesia:table(wtts),
-            (( W#wtts.havers /= []) and Havers) or
-            (( W#wtts.wanters /= []) and Wanters),
-        W#cards.id==C#cards.id]),
-    T = fun()-> qlc:e(Q) end,
-    {atomic, Res} = mnesia:transaction(T),
-    
-    Colors = proplists:get_all_values(color, L),
-    [C || C <- Res, X<-Colors, lists:member(X,C#cards.color)].
-      
 login(Name, Password) when Name == undefined;
 			   Password == undefined ->
     not_found;
 login(Name, Password) ->
     Lower = string:to_lower(Name),
-    MS = ets:fun2ms(fun(User = #users{name = Username, 
+    MS = ets:fun2ms(fun(User = #users{name = Username,
 				      password = CorrectPass})
 			  when Username == Lower,
 			       Password == CorrectPass->
 			    User
 		    end),
-    T = fun() -> 
+    T = fun() ->
 		case mnesia:select(users, MS, write) of
 		    [] ->
 			not_found;
@@ -177,7 +171,7 @@ autocomplete_card(Search) ->
 			     string:str(string:to_lower(C#cards.name), string:to_lower(Search)) > 0]),
     T = fun() -> qlc:e(Q) end,
     {atomic, Res} = mnesia:transaction(T),
-     Res.
+    Res.
 
 get_card(Id) ->
     T = fun() ->
@@ -193,7 +187,3 @@ all(Table) ->
     T = fun() -> qlc:e(Q) end,
     {atomic, Res} = mnesia:transaction(T),
     Res.
-
-
-
-    
