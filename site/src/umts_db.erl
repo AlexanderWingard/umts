@@ -99,21 +99,30 @@ update_wtt(Id, User, Kind, Fun, Timestamp) ->
 
 all_wtts(Filters) ->
     Q = qlc:q([W#wtts.id || W <- mnesia:table(wtts),
-			    filter(Filters, W)]),
+			    C <- mnesia:table(cards),
+			    W#wtts.id == C#cards.id,
+			    filter(Filters, W, C)]),
     T = fun() -> qlc:e(Q) end,
     {atomic, Result} = mnesia:transaction(T),
     Result.
 
-filter([{age, Days} | Filters], Wtt = #wtts{timestamp = Timestamp}) ->
+filter([{age, Days} | Filters], Wtt = #wtts{timestamp = Timestamp}, Card) ->
     {Mega, Secs, Milli} = now(),
     Then = {Mega, Secs - 86400 * Days, Milli},
     case Timestamp >= Then of
 	true ->
-	    filter(Filters, Wtt);
+	    filter(Filters, Wtt, Card);
 	false ->
 	    false
     end;
-filter([], _) ->
+filter([{color, Colors} | Filters], Wtt, Card) ->
+    case lists:any(fun(Color) -> lists:member(Color, Card#cards.color) end, Colors) of
+	true ->
+	    filter(Filters, Wtt, Card);
+	false ->
+	    false
+    end;
+filter([], _, _) ->
     true.
 
 user_wtts(User, Kind) ->

@@ -19,7 +19,7 @@ body() ->
      #panel{id = content, body = [sort(), content()]}].
 
 content() ->
-    [#panel{id = wtts, body = wtts()}].
+    [#panel{id = wtts, body = wtts([])}].
 
 search() ->
     [#textbox{id = search, postback = search},
@@ -32,12 +32,12 @@ user() ->
 sort()->
     [#panel{id = sort, body = [
 			       #link{text = "Show all", url = "index" },
-			       #checkbox{text = "Green", checked=true, id = chbg},
-			       #checkbox{text = "Red", checked=true, id = chbr},
-			       #checkbox{text = "Blue", checked=true, id = chbu},
-			       #checkbox{text = "Black", checked=true, id = chbb},
-			       #checkbox{text = "White", checked=true, id = chbw},
-			       #checkbox{text = "Artifact", checked=true, id = chba},
+			       #checkbox{text = "Green", checked=true, id = chbg, postback = update_sort},
+			       #checkbox{text = "Red", checked=true, id = chbr, postback = update_sort},
+			       #checkbox{text = "Blue", checked=true, id = chbu, postback = update_sort},
+			       #checkbox{text = "Black", checked=true, id = chbb, postback = update_sort},
+			       #checkbox{text = "White", checked=true, id = chbw, postback = update_sort},
+			       #checkbox{text = "Artifact", checked=true, id = chba, postback = update_sort},
 			       #span{style="padding-left:50px", text = "Watch user:  " },
 			       users_dropdown(),
 			       #span{style="padding-left:50px", text = "Show only:  " },
@@ -97,14 +97,27 @@ handle_event({wtt, Callback, Id}) ->
     umts_eventlog:log_wtt(User, Id, Callback),
     Card = #card{uid = Id},
     wf:replace("\#\#" ++ Id, Card),
-    wf:update(wtts, wtts()).
+    handle_event(update_sort);
+handle_event(update_sort) ->
+    Mapping = [{chbg, "G"}, {chbr, "R"}, {chbu, "U"}, {chbb, "B"}, {chbw, "W"}, {chba, "A"}],
+    ColorFilter = lists:foldl(fun({Chb, Color}, Acc) ->
+				      case wf:q(Chb) of
+					  "on" ->
+					      [Color | Acc];
+					  undefined ->
+					      Acc
+				      end
+			      end,
+			      [],
+			      Mapping),
+    wf:update(wtts, wtts([{color, ColorFilter}])).
 
-wtts() ->
+wtts(Filters) ->
     case catch list_to_integer(wf:path_info()) of
 	UserID when is_integer(UserID) ->
             show_user(UserID);
 	_ ->
-	    [#card{uid = C} || C <- umts_db:all_wtts([{age, 7}])]
+	    [#card{uid = C} || C <- umts_db:all_wtts(Filters)]
     end.
 
 show_user(UserID)->
