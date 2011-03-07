@@ -106,6 +106,8 @@ all_wtts(Filters) ->
     {atomic, Result} = mnesia:transaction(T),
     Result.
 
+filter([{_Filter, []} | Filters], Wtt, Card) ->
+    filter(Filters, Wtt, Card);
 filter([{age, Days} | Filters], Wtt = #wtts{timestamp = Timestamp}, Card) ->
     {Mega, Secs, Milli} = now(),
     Then = {Mega, Secs - 86400 * Days, Milli},
@@ -117,6 +119,15 @@ filter([{age, Days} | Filters], Wtt = #wtts{timestamp = Timestamp}, Card) ->
     end;
 filter([{color, Colors} | Filters], Wtt, Card) ->
     case lists:any(fun(Color) -> lists:member(Color, Card#cards.color) end, Colors) of
+	true ->
+	    filter(Filters, Wtt, Card);
+	false ->
+	    false
+    end;
+filter([{wtt, WttIx} | Filters], Wtt, Card) ->
+    case lists:any(fun(Ix) ->
+			   length(element(Ix, Wtt)) > 0
+		   end, WttIx) of
 	true ->
 	    filter(Filters, Wtt, Card);
 	false ->

@@ -42,8 +42,8 @@ sort()->
 			       users_dropdown(),
 			       time_dropdown(),
 			       #span{style="padding-left:50px", text = "Show only:  " },
-			       #checkbox{text ="Havers",checked=true, postback={sort, havers, hv}},
-			       #checkbox{text ="Wanters",checked=true, postback={sort, wanters, wnt}},
+			       #checkbox{text ="Havers",checked=true, id = chbhavers, postback=update_sort},
+			       #checkbox{text ="Wanters",checked=true, id = chbwanters, postback=update_sort},
 
 			       #br{},
 			       #hr{}
@@ -117,9 +117,21 @@ handle_event(update_sort) ->
 		    "undefined" ->
 			[];
 		    Days ->
-			[{age, list_to_integer(Days)}]
+			list_to_integer(Days)
 		end,
-    wf:update(wtts, wtts([{color, ColorFilter}] ++ TimeFiler)).
+    WttFilter = case wf:q(chbwanters) of
+		    undefined ->
+			[#wtts.wanters];
+		    "on" ->
+			[]
+		end ++
+	case wf:q(chbhavers) of
+	    undefined ->
+		[#wtts.havers];
+	    "on" ->
+		[]
+	end,
+    wf:update(wtts, wtts([{color, ColorFilter}, {age, TimeFiler}, {wtt, WttFilter}])).
 
 wtts(Filters) ->
     case catch list_to_integer(wf:path_info()) of
