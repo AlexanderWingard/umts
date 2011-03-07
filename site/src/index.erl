@@ -40,6 +40,7 @@ sort()->
 			       #checkbox{text = "Artifact", checked=true, id = chba, postback = update_sort},
 			       #span{style="padding-left:50px", text = "Watch user:  " },
 			       users_dropdown(),
+			       time_dropdown(),
 			       #span{style="padding-left:50px", text = "Show only:  " },
 			       #checkbox{text ="Havers",checked=true, postback={sort, havers, hv}},
 			       #checkbox{text ="Wanters",checked=true, postback={sort, wanters, wnt}},
@@ -53,13 +54,15 @@ users_dropdown()->
 						  value=X#users.id} || X<-umts_db:get_users()],
 	       postback = show_user
 	     }.
-
-dropbox()->
-    #droppable{ tag=tradebox, accept_groups=cards, class="tradebox",
-		body="bytesbox" }.
-
-drop_event(T,R)->
-    io:format("Hej: kor: ~w, drop: ~w ~n", [T,R]).
+time_dropdown() ->
+    #dropdown{id = timespanlist, options = [ #option{text = "Select Timeperiod",
+						     value = "undefined"},
+					     #option{text = "One week",
+						     value = "7"},
+					     #option{text = "One Month",
+						     value = "30"}],
+	      postback = update_sort
+	     }.
 
 event(Event) ->
     case wf:user() of
@@ -110,7 +113,13 @@ handle_event(update_sort) ->
 			      end,
 			      [],
 			      Mapping),
-    wf:update(wtts, wtts([{color, ColorFilter}])).
+    TimeFiler = case wf:q(timespanlist) of
+		    "undefined" ->
+			[];
+		    Days ->
+			[{age, list_to_integer(Days)}]
+		end,
+    wf:update(wtts, wtts([{color, ColorFilter}] ++ TimeFiler)).
 
 wtts(Filters) ->
     case catch list_to_integer(wf:path_info()) of
