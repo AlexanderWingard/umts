@@ -51,14 +51,19 @@ sort()->
                 #span{style="padding-left:50px", text = "Show only:  " },
                 #checkbox{text ="Havers",checked=true, postback={sort, havers, hv}},
                 #checkbox{text ="Wanters",checked=true, postback={sort, wanters, wnt}},
+                %% Padding
+                #span{style="padding-left:50px", text=""},
+                #link{text ="Trepartsbyten", url = "trepart" },
 
                 #br{},
                 #hr{}
         ]}].        
 
 users_dropdown()->
-    #dropdown{ id = userlist, options = [ #option{text=X#users.name,
-                value=X#users.id} || X<-umts_db:get_users()], 
+    #dropdown{ id = userlist, value = "666", options = 
+        [#option{text="---Choose one---",value="666"} |
+        [ #option{text=X#users.name, value=X#users.id} ||
+            X<-umts_db:get_users()]], 
         postback = show_user
     }.
 
@@ -114,8 +119,11 @@ handle_event({sort, Sort, Id})->
     C = update_sortlist(Sort,Id),
     wf:update(wtts, [card(X) || X<- umts_db:sort2(C)]);
 handle_event(show_user)->
-    [SelectedUserId] = wf:q(userlist),
-    wf:update(wtts, show_user(SelectedUserId));
+    wf:q(userlist),
+    case wf:q(userlist)of
+        "666"->ok;
+        [SelectedUserId] -> wf:update(wtts, show_user(SelectedUserId))
+    end;
 
 handle_event({wtt, Callback, Id}) ->
     %% TODO: Some more security here?
@@ -125,8 +133,10 @@ handle_event({wtt, Callback, Id}) ->
     Card = card(umts_db:get_card(Id)),
     wf:replace("srch" ++ Id, Card#panel{id = "srch" ++ Id}),
     %% TODO: Do we really need to redraw everything here?
-    wf:update(wtts, wtts()).
+    wf:update(wtts, wtts());
 
+handle_event("666")->
+    ok.
 
 wtts() ->
     case catch list_to_integer(wf:path_info()) of
