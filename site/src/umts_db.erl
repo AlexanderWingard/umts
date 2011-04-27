@@ -5,7 +5,7 @@
 -include_lib("stdlib/include/ms_transform.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 
-init() ->
+init() -> 
     mnesia:create_schema([node() | nodes()]),
     mnesia:start().
 
@@ -40,7 +40,15 @@ insert_user(Name, Password, Email) ->
 		end
         end,
     {atomic, NewID} = mnesia:transaction(T),
-    NewID.
+    NewID. 
+
+update_lastlogin(Id, Timestamp)->
+    T = fun() ->
+		[U] = mnesia:read(users, Id),
+		ok = mnesia:write(U#users{lastlogin=Timestamp}) 
+	end,
+    {atomic, _} = mnesia:transaction(T),
+    ok.
 
 get_user(Id) ->
     T = fun() ->
@@ -61,7 +69,7 @@ get_users()->
     Q = qlc:q([U || U <- mnesia:table(users)]),
     T = fun() -> qlc:e(Q) end,
     {atomic, Result} = mnesia:transaction(T),
-    Result.
+    Result. 
 
 add_wanter(Id, User) ->
     update_wtt(Id, User, #wtts.wanters, fun ordsets:add_element/2,now()).
@@ -141,7 +149,7 @@ user_wtts(User, Kind) ->
 			    ordsets:is_element(User, element(Kind, W))]),
     T = fun() -> qlc:e(Q) end,
     {atomic, Result} = mnesia:transaction(T),
-    Result.
+    Result. 
 
 get_updated_wtts(LastLogin)->
     Q = qlc:q([W#wtts.id || W <- mnesia:table(wtts),
@@ -150,7 +158,7 @@ get_updated_wtts(LastLogin)->
     {atomic, Result} = mnesia:transaction(T),
     Result.
 
-get_wtts(Id) ->
+get_wtts(Id) -> 
     T = fun() ->
 		case mnesia:read(wtts, Id) of
 		    [] ->
@@ -193,13 +201,31 @@ autocomplete_card(Search) ->
     {atomic, Res} = mnesia:transaction(T),
     Res.
 
-get_card(Id) ->
+get_card(Id) -> 
     T = fun() ->
 		[Card] = mnesia:read(cards, Id),
 		Card
 	end,
     {atomic, Result} = mnesia:transaction(T),
     Result.
+
+get_havers(CardId)->
+    Q = qlc:q([W#wtts.havers || C <- mnesia:read(cards, CardId),
+		    W <- mnesia:table(wtts),
+		    C#cards.id == W#wtts.id]),
+    T = fun() -> qlc:e(Q) end,
+    {atomic, Result} = mnesia:transaction(T),
+    Result.
+
+get_iwants(User)->
+    Q = qlc:q([C || C <- mnesia:table(cards),
+		    W <- mnesia:table(wtts),
+		    C#cards.id == W#wtts.id,
+            ordsets:is_element(User,W#wtts.wanters)]),
+    T = fun() -> qlc:e(Q) end,
+    {atomic, Result} = mnesia:transaction(T),
+    Result.
+
 
 
 all(Table) ->

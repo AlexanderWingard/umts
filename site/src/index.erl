@@ -43,17 +43,22 @@ sort()->
 			       time_dropdown(),
 			       #span{style="padding-left:50px", text = "Show only:  " },
 			       #checkbox{text ="Havers",checked=true, id = chbhavers, postback=update_sort},
-			       #checkbox{text ="Wanters",checked=true, id = chbwanters, postback=update_sort},
-
+                               #checkbox{text ="Wanters",checked=true, id = chbwanters, postback=update_sort},
+                               %% Padding
+                               #span{style="padding-left:50px", text=""},
+                               #link{text ="Trepartsbyten", url = "trepart" },
 			       #br{},
 			       #hr{}
 			      ]}].
 
 users_dropdown()->
-    #dropdown{ id = userlist, options = [ #option{text=X#users.name,
-						  value=X#users.id} || X<-umts_db:get_users()],
-	       postback = show_user
-	     }.
+    #dropdown{ id = userlist, value = "666", options = 
+        [#option{text="---Choose one---",value="666"} |
+        [ #option{text=X#users.name, value=X#users.id} ||
+            X<-umts_db:get_users()]], 
+        postback = show_user
+    }.
+
 time_dropdown() ->
     #dropdown{id = timespanlist, options = [ #option{text = "Select Timeperiod",
 						     value = "undefined"},
@@ -90,8 +95,11 @@ handle_event(search) ->
     Completions = [#card{uid = C} || C <- lists:sublist(Result, 10)],
     wf:update(searchPanel, [wf:f("Found ~w matching cards", [length(Result)]), Completions]);
 handle_event(show_user)->
-    [SelectedUserId] = wf:q(userlist),
-    wf:update(wtts, show_user(SelectedUserId));
+    wf:q(userlist),
+    case wf:q(userlist)of
+        "666"->ok;
+        [SelectedUserId] -> wf:update(wtts, show_user(SelectedUserId))
+    end;
 
 handle_event({wtt, Callback, Id}) ->
     %% TODO: Some more security here?
@@ -132,6 +140,9 @@ handle_event(update_sort) ->
 		[]
 	end,
     wf:update(wtts, wtts([{color, ColorFilter}, {age, TimeFiler}, {wtt, WttFilter}])).
+handle_event("666")->
+    ok.
+
 
 wtts(Filters) ->
     case catch list_to_integer(wf:path_info()) of
