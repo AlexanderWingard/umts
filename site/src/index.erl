@@ -139,7 +139,7 @@ handle_event(update_sort) ->
 	    "on" ->
 		[]
 	end,
-    wf:update(wtts, wtts([{color, ColorFilter}, {age, TimeFiler}, {wtt, WttFilter}])).
+    wf:update(wtts, wtts([{color, ColorFilter}, {age, TimeFiler}, {wtt, WttFilter}]));
 handle_event("666")->
     ok.
 

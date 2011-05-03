@@ -1,8 +1,9 @@
 -module (trepart).
 -compile(export_all).
--include_lib("nitrogen/include/wf.hrl").
+-include_lib("nitrogen_core/include/wf.hrl").
 
 -include("umts_db.hrl").
+-include("records.hrl").
 main() -> #template { file="./templates/bare.html" }.
 
 title() -> "Login".
@@ -33,7 +34,7 @@ timestamp()->
             [ show_card_and_label(X) || X<-TreParts]
     end.
 
-    show_card_and_label({ {F1,T1,C1}, {F2,T2,C2}, {F3,T3,C3}})->
+show_card_and_label({ {F1,T1,C1}, {F2,T2,C2}, {F3,T3,C3}})->
         F1U = umts_db:get_user(F1),
         F2U = umts_db:get_user(F2),
         F3U = umts_db:get_user(F3),
@@ -42,9 +43,9 @@ timestamp()->
         T2U = umts_db:get_user(T2),
         T3U = umts_db:get_user(T3),
         
-        C1U = index:card(umts_db:get_card(C1)),
-        C2U = index:card(umts_db:get_card(C2)),
-        C3U = index:card(umts_db:get_card(C3)),
+        C1U = #card{uid = C1},
+        C2U = #card{uid = C2},
+        C3U = #card{uid = C3},
         
         Row1 = #tablerow{ cells=[
                 #tablecell{text=F1U#users.name++" -> "++T1U#users.name},
